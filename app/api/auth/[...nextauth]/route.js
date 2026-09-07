@@ -1,44 +1,53 @@
-import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import connectMongo from '@/lib/db';
-import User from '@/models/User';
-import bcrypt from 'bcryptjs';
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import connectMongo from "@/lib/db";
+import User from "@/models/User";
+import bcrypt from "bcryptjs";
 
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
 
-if (process.env.NODE_ENV === 'production' && !nextAuthSecret) {
-  throw new Error('NEXTAUTH_SECRET must be configured in production');
+if (process.env.NODE_ENV === "production" && !nextAuthSecret) {
+  throw new Error("NEXTAUTH_SECRET must be configured in production");
 }
 
 export const authOptions = {
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: 'Email', type: 'email', placeholder: 'admin@example.com' },
-        password: { label: 'Password', type: 'password' },
+        email: {
+          label: "Email",
+          type: "email",
+          placeholder: "admin@example.com",
+        },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         await connectMongo();
 
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Please enter an email and password');
+          throw new Error("Please enter an email and password");
         }
 
-        const user = await User.findOne({ email: credentials.email }).select('+password');
+        const user = await User.findOne({ email: credentials.email }).select(
+          "+password",
+        );
 
         if (!user) {
-          throw new Error('No user found with this email');
+          throw new Error("No user found with this email");
         }
 
-        if (user.status !== 'active') {
-          throw new Error('This account has been deactivated');
+        if (user.status !== "active") {
+          throw new Error("This account has been deactivated");
         }
 
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+        const passwordMatch = await bcrypt.compare(
+          credentials.password,
+          user.password,
+        );
 
         if (!passwordMatch) {
-          throw new Error('Incorrect password');
+          throw new Error("Incorrect password");
         }
 
         return {
@@ -67,12 +76,12 @@ export const authOptions = {
     },
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
-  secret: nextAuthSecret || 'fallback-secret-for-development',
+  secret: nextAuthSecret || "fallback-secret-for-development",
 };
 
 const handler = NextAuth(authOptions);

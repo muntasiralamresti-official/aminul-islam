@@ -1,25 +1,27 @@
-'use client';
+"use client";
 
-import { Suspense, useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Suspense, useState, useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Plus, Edit, Trash2, Eye } from "lucide-react";
+import toast from "react-hot-toast";
 
 function StudentsContent() {
   const searchParams = useSearchParams();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
+  const [searchQuery, setSearchQuery] = useState(
+    () => searchParams.get("search") || "",
+  );
 
   const fetchStudents = async () => {
     try {
-      const res = await fetch('/api/students');
+      const res = await fetch("/api/students");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load students');
+      if (!res.ok) throw new Error(data.error || "Failed to load students");
       setStudents(data);
     } catch (error) {
-      toast.error(error.message || 'Failed to load students');
+      toast.error(error.message || "Failed to load students");
     } finally {
       setLoading(false);
     }
@@ -27,14 +29,14 @@ function StudentsContent() {
 
   useEffect(() => {
     let active = true;
-    fetch('/api/students')
+    fetch("/api/students")
       .then(async (res) => {
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to load students');
+        if (!res.ok) throw new Error(data.error || "Failed to load students");
         if (active) setStudents(data);
       })
       .catch((error) => {
-        if (active) toast.error(error.message || 'Failed to load students');
+        if (active) toast.error(error.message || "Failed to load students");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -46,19 +48,21 @@ function StudentsContent() {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this student?')) return;
+    if (!confirm("Are you sure you want to delete this student?")) return;
     try {
-      const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete student');
-      toast.success('Student deleted');
+      const res = await fetch(`/api/students/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete student");
+      toast.success("Student deleted");
       fetchStudents();
     } catch (error) {
-      toast.error(error.message || 'Error deleting student');
+      toast.error(error.message || "Error deleting student");
     }
   };
 
   const filteredStudents = students.filter((student) => {
-    const query = (searchParams.get('search') || searchQuery).trim().toLowerCase();
+    const query = (searchParams.get("search") || searchQuery)
+      .trim()
+      .toLowerCase();
     if (!query) return true;
 
     return [
@@ -71,7 +75,12 @@ function StudentsContent() {
     ].some((value) => value?.toLowerCase().includes(query));
   });
 
-  if (loading) return <div className="p-4 flex justify-center text-gray-500">Loading students...</div>;
+  if (loading)
+    return (
+      <div className="p-4 flex justify-center text-gray-500">
+        Loading students...
+      </div>
+    );
 
   return (
     <div>
@@ -108,11 +117,21 @@ function StudentsContent() {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Roll No</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Phone</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Batch</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                      Roll No
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Name
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Phone
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Batch
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Status
+                    </th>
                     <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
                     </th>
@@ -128,31 +147,52 @@ function StudentsContent() {
                         <div className="flex items-center">
                           <div className="h-8 w-8 flex-shrink-0">
                             {student.photo ? (
-                              <img className="h-8 w-8 rounded-full object-cover border" src={student.photo} alt="" />
+                              <img
+                                className="h-8 w-8 rounded-full object-cover border"
+                                src={student.photo}
+                                alt=""
+                              />
                             ) : (
                               <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                                 {student.name.charAt(0)}
                               </div>
                             )}
                           </div>
-                          <div className="ml-3 font-medium text-gray-900">{student.name}</div>
+                          <div className="ml-3 font-medium text-gray-900">
+                            {student.name}
+                          </div>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{student.phone}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{student.batch?.name || 'N/A'}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${student.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {student.phone}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {student.batch?.name || "N/A"}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        <span
+                          className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${student.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                        >
                           {student.status}
                         </span>
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <Link href={`/dashboard/students/${student._id}`} className="text-gray-600 hover:text-gray-900 mr-4">
+                        <Link
+                          href={`/dashboard/students/${student._id}`}
+                          className="text-gray-600 hover:text-gray-900 mr-4"
+                        >
                           <Eye className="inline h-4 w-4" />
                         </Link>
-                        <Link href={`/dashboard/students/${student._id}/edit`} className="text-blue-600 hover:text-blue-900 mr-4">
+                        <Link
+                          href={`/dashboard/students/${student._id}/edit`}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
                           <Edit className="inline h-4 w-4" />
                         </Link>
-                        <button onClick={() => handleDelete(student._id)} className="text-red-600 hover:text-red-900">
+                        <button
+                          onClick={() => handleDelete(student._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
                           <Trash2 className="inline h-4 w-4" />
                         </button>
                       </td>
@@ -160,8 +200,13 @@ function StudentsContent() {
                   ))}
                   {filteredStudents.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="py-4 text-center text-sm text-gray-500">
-                        {students.length === 0 ? 'No students found. Create one to get started.' : 'No students match your search.'}
+                      <td
+                        colSpan="6"
+                        className="py-4 text-center text-sm text-gray-500"
+                      >
+                        {students.length === 0
+                          ? "No students found. Create one to get started."
+                          : "No students match your search."}
                       </td>
                     </tr>
                   )}
@@ -177,7 +222,13 @@ function StudentsContent() {
 
 export default function StudentsPage() {
   return (
-    <Suspense fallback={<div className="p-4 flex justify-center text-gray-500">Loading students...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-4 flex justify-center text-gray-500">
+          Loading students...
+        </div>
+      }
+    >
       <StudentsContent />
     </Suspense>
   );

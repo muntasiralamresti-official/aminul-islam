@@ -1,42 +1,43 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [accountSaving, setAccountSaving] = useState(false);
   const [accountData, setAccountData] = useState({
-    email: '',
-    currentPassword: '',
-    newPassword: ''
+    email: "",
+    currentPassword: "",
+    newPassword: "",
   });
   const [formData, setFormData] = useState({
-    centerName: '',
-    contactEmail: '',
-    defaultFee: 1000
+    centerName: "",
+    contactEmail: "",
+    defaultFee: 1000,
   });
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
         setFormData({
-          centerName: data.centerName || '',
-          contactEmail: data.contactEmail || '',
-          defaultFee: data.defaultFee || 1000
+          centerName: data.centerName || "",
+          contactEmail: data.contactEmail || "",
+          defaultFee: data.defaultFee || 1000,
         });
       })
-      .catch(() => toast.error('Failed to load settings'))
+      .catch(() => toast.error("Failed to load settings"))
       .finally(() => setLoading(false));
 
-    fetch('/api/account')
-      .then(res => res.json())
-      .then(data => {
-        if (data.email) setAccountData(current => ({ ...current, email: data.email }));
+    fetch("/api/account")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.email)
+          setAccountData((current) => ({ ...current, email: data.email }));
       })
-      .catch(() => toast.error('Failed to load account settings'));
+      .catch(() => toast.error("Failed to load account settings"));
   }, []);
 
   const handleChange = (e) => {
@@ -45,21 +46,24 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const tId = toast.loading('Saving settings...');
+    const tId = toast.loading("Saving settings...");
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
-      
+
       if (res.ok) {
-        toast.success('Settings saved successfully. Refresh to see changes globally.', { id: tId });
+        toast.success(
+          "Settings saved successfully. Refresh to see changes globally.",
+          { id: tId },
+        );
       } else {
-        throw new Error('Failed to save');
+        throw new Error("Failed to save");
       }
     } catch (error) {
-      toast.error('Failed to save settings', { id: tId });
+      toast.error("Failed to save settings", { id: tId });
     } finally {
       setSaving(false);
     }
@@ -68,19 +72,25 @@ export default function SettingsPage() {
   const handleAccountSave = async (event) => {
     event.preventDefault();
     setAccountSaving(true);
-    const tId = toast.loading('Updating account...');
+    const tId = toast.loading("Updating account...");
     try {
-      const res = await fetch('/api/account', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(accountData)
+      const res = await fetch("/api/account", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(accountData),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update account');
-      setAccountData({ email: data.email, currentPassword: '', newPassword: '' });
-      toast.success('Account updated. Sign in again if your email changed.', { id: tId });
+      if (!res.ok) throw new Error(data.error || "Failed to update account");
+      setAccountData({
+        email: data.email,
+        currentPassword: "",
+        newPassword: "",
+      });
+      toast.success("Account updated. Sign in again if your email changed.", {
+        id: tId,
+      });
     } catch (error) {
-      toast.error(error.message || 'Failed to update account', { id: tId });
+      toast.error(error.message || "Failed to update account", { id: tId });
     } finally {
       setAccountSaving(false);
     }
@@ -92,86 +102,115 @@ export default function SettingsPage() {
     <div className="max-w-7xl mx-auto">
       <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
       <p className="mt-2 text-sm text-gray-700">
-        Manage your coaching center profile, staff, and application configurations.
+        Manage your coaching center profile, staff, and application
+        configurations.
       </p>
-      
+
       <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-md p-6">
         <h2 className="text-lg font-medium">Coaching Profile</h2>
         <div className="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 gap-x-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Center Name</label>
-            <input 
-              type="text" 
+            <label className="block text-sm font-medium text-gray-700">
+              Center Name
+            </label>
+            <input
+              type="text"
               name="centerName"
               value={formData.centerName}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" 
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Contact Email</label>
-            <input 
-              type="email" 
+            <label className="block text-sm font-medium text-gray-700">
+              Contact Email
+            </label>
+            <input
+              type="email"
               name="contactEmail"
               value={formData.contactEmail}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" 
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Default Monthly Fee (৳)</label>
-            <p className="text-xs text-gray-500 mb-1">Used to estimate &apos;Total Due&apos; on the dashboard.</p>
-            <input 
-              type="number" 
+            <label className="block text-sm font-medium text-gray-700">
+              Default Monthly Fee (৳)
+            </label>
+            <p className="text-xs text-gray-500 mb-1">
+              Used to estimate &apos;Total Due&apos; on the dashboard.
+            </p>
+            <input
+              type="number"
               name="defaultFee"
               value={formData.defaultFee}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" 
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
             />
           </div>
         </div>
         <div className="mt-6">
-          <button 
+          <button
             onClick={handleSave}
             disabled={saving}
             className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
 
       <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-md p-6">
         <h2 className="text-lg font-medium text-gray-900">Login Account</h2>
-        <p className="mt-1 text-sm text-gray-500">Change the email or password used to sign in.</p>
-        <form onSubmit={handleAccountSave} className="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 gap-x-4">
+        <p className="mt-1 text-sm text-gray-500">
+          Change the email or password used to sign in.
+        </p>
+        <form
+          onSubmit={handleAccountSave}
+          className="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 gap-x-4"
+        >
           <div>
-            <label className="block text-sm font-medium text-gray-700">Login Email</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Login Email
+            </label>
             <input
               type="email"
               required
               value={accountData.email}
-              onChange={(e) => setAccountData({ ...accountData, email: e.target.value })}
+              onChange={(e) =>
+                setAccountData({ ...accountData, email: e.target.value })
+              }
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Current Password</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Current Password
+            </label>
             <input
               type="password"
               required
               value={accountData.currentPassword}
-              onChange={(e) => setAccountData({ ...accountData, currentPassword: e.target.value })}
+              onChange={(e) =>
+                setAccountData({
+                  ...accountData,
+                  currentPassword: e.target.value,
+                })
+              }
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">New Password</label>
+            <label className="block text-sm font-medium text-gray-700">
+              New Password
+            </label>
             <input
               type="password"
               minLength={8}
               value={accountData.newPassword}
-              onChange={(e) => setAccountData({ ...accountData, newPassword: e.target.value })}
+              onChange={(e) =>
+                setAccountData({ ...accountData, newPassword: e.target.value })
+              }
               placeholder="Leave blank to keep current password"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
             />
@@ -182,7 +221,7 @@ export default function SettingsPage() {
               disabled={accountSaving}
               className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50"
             >
-              {accountSaving ? 'Updating...' : 'Update Login'}
+              {accountSaving ? "Updating..." : "Update Login"}
             </button>
           </div>
         </form>

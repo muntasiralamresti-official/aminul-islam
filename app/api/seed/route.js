@@ -1,28 +1,28 @@
-import { NextResponse } from 'next/server';
-import connectMongo from '@/lib/db';
-import User from '@/models/User';
-import bcrypt from 'bcryptjs';
+import { NextResponse } from "next/server";
+import connectMongo from "@/lib/db";
+import User from "@/models/User";
+import bcrypt from "bcryptjs";
 
 export async function GET() {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   try {
     await connectMongo();
-    const email = 'aminulislam@gmail.com';
-    const password = 'aminul-islam86';
+    const email = "aminulislam@gmail.com";
+    const password = "aminul-islam86";
     const hashedPassword = await bcrypt.hash(password, 10);
     const admin = await User.findOneAndUpdate(
-      { role: 'admin' },
+      { role: "admin" },
       {
-        name: 'System Admin',
+        name: "System Admin",
         email,
         password: hashedPassword,
-        role: 'admin',
-        status: 'active',
+        role: "admin",
+        status: "active",
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { new: true, upsert: true, setDefaultsOnInsert: true },
     );
 
     return NextResponse.json({

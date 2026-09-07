@@ -8,6 +8,12 @@ export async function GET() {
     let setting = await Setting.findOne();
     if (!setting) {
       setting = await Setting.create({});
+    } else if (setting.centerName === 'Coaching Pro') {
+      setting = await Setting.findByIdAndUpdate(
+        setting._id,
+        { centerName: 'Aminul Islam' },
+        { new: true },
+      );
     }
     return NextResponse.json(setting);
   } catch (error) {

@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [centerName, setCenterName] = useState("Coaching Center");
+  const [centerName, setCenterName] = useState("Aminul Islam");
 
   useEffect(() => {
     fetch("/api/settings")

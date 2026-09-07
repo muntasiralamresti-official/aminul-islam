@@ -31,7 +31,7 @@ const navigation = [
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [centerName, setCenterName] = useState("Coaching Center");
+  const [centerName, setCenterName] = useState("Aminul Islam");
   const [searchQuery, setSearchQuery] = useState("");
   const pathname = usePathname();
   const router = useRouter();

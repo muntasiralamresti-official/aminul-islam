@@ -4,7 +4,7 @@ const SettingSchema = new mongoose.Schema(
   {
     centerName: {
       type: String,
-      default: 'Coaching Pro',
+      default: 'Aminul Islam',
     },
     contactEmail: {
       type: String,

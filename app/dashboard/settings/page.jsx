@@ -205,11 +205,19 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowAccountPasswords((visible) => !visible)}
-                aria-label={showAccountPasswords ? "Hide passwords" : "Show passwords"}
-                title={showAccountPasswords ? "Hide passwords" : "Show passwords"}
+                aria-label={
+                  showAccountPasswords ? "Hide passwords" : "Show passwords"
+                }
+                title={
+                  showAccountPasswords ? "Hide passwords" : "Show passwords"
+                }
                 className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-900"
               >
-                {showAccountPasswords ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showAccountPasswords ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>
@@ -223,7 +231,10 @@ export default function SettingsPage() {
                 minLength={8}
                 value={accountData.newPassword}
                 onChange={(e) =>
-                  setAccountData({ ...accountData, newPassword: e.target.value })
+                  setAccountData({
+                    ...accountData,
+                    newPassword: e.target.value,
+                  })
                 }
                 placeholder="Leave blank to keep current password"
                 className="block w-full rounded-md border-gray-300 shadow-sm border p-2 pr-10 text-black"
@@ -231,11 +242,19 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowAccountPasswords((visible) => !visible)}
-                aria-label={showAccountPasswords ? "Hide passwords" : "Show passwords"}
-                title={showAccountPasswords ? "Hide passwords" : "Show passwords"}
+                aria-label={
+                  showAccountPasswords ? "Hide passwords" : "Show passwords"
+                }
+                title={
+                  showAccountPasswords ? "Hide passwords" : "Show passwords"
+                }
                 className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-900"
               >
-                {showAccountPasswords ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showAccountPasswords ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>

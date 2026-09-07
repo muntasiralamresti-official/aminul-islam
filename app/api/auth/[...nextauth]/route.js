@@ -31,9 +31,7 @@ export const authOptions = {
 
         const email = credentials.email.trim().toLowerCase();
 
-        const user = await User.findOne({ email }).select(
-          "+password",
-        );
+        const user = await User.findOne({ email }).select("+password");
 
         if (!user) {
           throw new Error("No user found with this email");

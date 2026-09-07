@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [accountSaving, setAccountSaving] = useState(false);
+  const [showAccountPasswords, setShowAccountPasswords] = useState(false);
   const [accountData, setAccountData] = useState({
     email: "",
     currentPassword: "",
@@ -187,33 +189,55 @@ export default function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700">
               Current Password
             </label>
-            <input
-              type="password"
-              required
-              value={accountData.currentPassword}
-              onChange={(e) =>
-                setAccountData({
-                  ...accountData,
-                  currentPassword: e.target.value,
-                })
-              }
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
-            />
+            <div className="relative mt-1">
+              <input
+                type={showAccountPasswords ? "text" : "password"}
+                required
+                value={accountData.currentPassword}
+                onChange={(e) =>
+                  setAccountData({
+                    ...accountData,
+                    currentPassword: e.target.value,
+                  })
+                }
+                className="block w-full rounded-md border-gray-300 shadow-sm border p-2 pr-10 text-black"
+              />
+              <button
+                type="button"
+                onClick={() => setShowAccountPasswords((visible) => !visible)}
+                aria-label={showAccountPasswords ? "Hide passwords" : "Show passwords"}
+                title={showAccountPasswords ? "Hide passwords" : "Show passwords"}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-900"
+              >
+                {showAccountPasswords ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">
               New Password
             </label>
-            <input
-              type="password"
-              minLength={8}
-              value={accountData.newPassword}
-              onChange={(e) =>
-                setAccountData({ ...accountData, newPassword: e.target.value })
-              }
-              placeholder="Leave blank to keep current password"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
-            />
+            <div className="relative mt-1">
+              <input
+                type={showAccountPasswords ? "text" : "password"}
+                minLength={8}
+                value={accountData.newPassword}
+                onChange={(e) =>
+                  setAccountData({ ...accountData, newPassword: e.target.value })
+                }
+                placeholder="Leave blank to keep current password"
+                className="block w-full rounded-md border-gray-300 shadow-sm border p-2 pr-10 text-black"
+              />
+              <button
+                type="button"
+                onClick={() => setShowAccountPasswords((visible) => !visible)}
+                aria-label={showAccountPasswords ? "Hide passwords" : "Show passwords"}
+                title={showAccountPasswords ? "Hide passwords" : "Show passwords"}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-900"
+              >
+                {showAccountPasswords ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
           <div className="flex items-end">
             <button

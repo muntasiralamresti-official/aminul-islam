@@ -29,7 +29,9 @@ export const authOptions = {
           throw new Error("Please enter an email and password");
         }
 
-        const user = await User.findOne({ email: credentials.email }).select(
+        const email = credentials.email.trim().toLowerCase();
+
+        const user = await User.findOne({ email }).select(
           "+password",
         );
 

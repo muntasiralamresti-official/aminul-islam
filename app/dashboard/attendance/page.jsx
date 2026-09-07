@@ -20,8 +20,13 @@ export default function AttendancePage() {
 
   useEffect(() => {
     fetch('/api/batches')
-      .then(res => res.json())
-      .then(data => setBatches(data));
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load batches');
+        return data;
+      })
+      .then(data => setBatches(data))
+      .catch(error => toast.error(error.message || 'Failed to load batches'));
   }, []);
 
   const fetchAttendance = async () => {
@@ -40,7 +45,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     if (activeTab === 'daily') {
-      fetchAttendance();
+      Promise.resolve().then(fetchAttendance);
     }
   }, [selectedBatch, date, activeTab]);
 
@@ -64,7 +69,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     if (activeTab === 'monthly') {
-      fetchSummary();
+      Promise.resolve().then(fetchSummary);
     }
   }, [selectedBatch, summaryMonth, summaryYear, activeTab]);
 
@@ -207,9 +212,9 @@ export default function AttendancePage() {
               </div>
             ) : attendanceData?.records?.length > 0 ? (
               <div>
-                <div className="mb-4 flex flex-wrap justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
+                <div className="mb-4 flex flex-col sm:flex-row sm:flex-wrap justify-between items-stretch sm:items-center gap-3 bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
                   <span className="font-medium">{attendanceData.isNew ? '✨ No record exists for this date. Creating a new one.' : '📝 Showing existing record for this date.'}</span>
-                  <div className="space-x-3 mt-2 sm:mt-0">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button onClick={markAllPresent} className="px-4 py-2 text-blue-700 bg-blue-100 hover:bg-blue-200 rounded font-semibold transition-colors">
                       Mark All Present
                     </button>
@@ -221,7 +226,7 @@ export default function AttendancePage() {
                     </button>
                   </div>
                 </div>
-                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+                <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
@@ -236,7 +241,7 @@ export default function AttendancePage() {
                           <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-gray-900">{record.student.rollNumber}</td>
                           <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-500">
                             <div className="flex items-center">
-                              <div className="h-10 w-10 flex-shrink-0">
+                              <div className="h-10 w-10 shrink-0">
                                 {record.student.photo ? (
                                   <img className="h-10 w-10 rounded-full object-cover border-2 border-gray-200" src={record.student.photo} alt="" />
                                 ) : (
@@ -298,7 +303,7 @@ export default function AttendancePage() {
                 <p className="text-sm">Please select a batch to view the monthly summary.</p>
               </div>
             ) : summaryData.length > 0 ? (
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+              <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -313,7 +318,7 @@ export default function AttendancePage() {
                       <tr key={row.student._id} className="hover:bg-gray-50">
                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-500">
                           <div className="flex items-center">
-                            <div className="h-8 w-8 flex-shrink-0">
+                            <div className="h-8 w-8 shrink-0">
                               {row.student.photo ? (
                                 <img className="h-8 w-8 rounded-full object-cover border" src={row.student.photo} alt="" />
                               ) : (

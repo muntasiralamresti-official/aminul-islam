@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Filter } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function FeesPage() {
   const [payments, setPayments] = useState([]);
@@ -22,6 +23,7 @@ export default function FeesPage() {
   const [filterDate, setFilterDate] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [filterYear, setFilterYear] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -33,17 +35,19 @@ export default function FeesPage() {
       ]);
       const pData = await paymentsRes.json();
       const sData = await studentsRes.json();
+      if (!paymentsRes.ok) throw new Error(pData.error || 'Failed to load payments');
+      if (!studentsRes.ok) throw new Error(sData.error || 'Failed to load students');
       setPayments(pData);
       setStudents(sData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      toast.error(error.message || 'Failed to load fees and payments');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    Promise.resolve().then(fetchData);
   }, []);
 
   const openNewPaymentModal = () => {
@@ -79,17 +83,20 @@ export default function FeesPage() {
     try {
       const res = await fetch(`/api/payments/${id}`, { method: 'DELETE' });
       if (res.ok) {
+        toast.success('Payment deleted');
         fetchData();
       } else {
-        alert('Failed to delete payment');
+        const error = await res.json();
+        toast.error(error.error || 'Failed to delete payment');
       }
     } catch (error) {
-      alert('Error deleting payment');
+      toast.error('Error deleting payment');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const toastId = toast.loading(editMode ? 'Updating payment...' : 'Recording payment...');
     try {
       const url = editMode ? `/api/payments/${editingId}` : '/api/payments';
       const method = editMode ? 'PUT' : 'POST';
@@ -101,15 +108,16 @@ export default function FeesPage() {
       });
 
       if (res.ok) {
+        toast.success(editMode ? 'Payment updated' : 'Payment recorded', { id: toastId });
         setShowModal(false);
         fetchData();
         setFormData({ ...formData, student: '', amount: '' }); // reset some fields
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to record payment');
+        toast.error(error.error || 'Failed to record payment', { id: toastId });
       }
     } catch (error) {
-      alert('Failed to record payment');
+      toast.error('Failed to record payment', { id: toastId });
     }
   };
 
@@ -125,6 +133,12 @@ export default function FeesPage() {
     if (filterYear && p.year.toString() !== filterYear.toString()) {
       match = false;
     }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const sName = p.student?.name?.toLowerCase() || '';
+      const sRoll = p.student?.rollNumber?.toLowerCase() || '';
+      if (!sName.includes(q) && !sRoll.includes(q)) match = false;
+    }
     return match;
   });
 
@@ -132,48 +146,62 @@ export default function FeesPage() {
 
   return (
     <div>
-      <div className="sm:flex sm:items-center">
+      <div className="sm:flex sm:items-center justify-between">
         <div className="sm:flex-auto">
           <h1 className="text-xl font-semibold text-gray-900">Fees & Payments</h1>
           <p className="mt-2 text-sm text-gray-700">Manage student monthly fees, view payment history, and record new payments.</p>
         </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:flex-none flex flex-col sm:flex-row gap-3">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by student name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm border p-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
           <button
             onClick={openNewPaymentModal}
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+            className="inline-flex w-full sm:w-auto items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
           >
             <Plus className="mr-2 h-4 w-4" /> Record Payment
           </button>
         </div>
       </div>
 
-      <div className="mt-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Specific Date</label>
-          <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="block rounded-md border-gray-300 shadow-sm border p-2 text-sm text-black" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Month</label>
-          <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="block rounded-md border-gray-300 shadow-sm border p-2 text-sm text-black bg-white">
-            <option value="">All Months</option>
-            {months.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Filter by Year</label>
-          <input type="number" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} placeholder="e.g. 2026" className="block rounded-md border-gray-300 shadow-sm border p-2 text-sm w-24 text-black" />
-        </div>
-        <div>
-          <button onClick={() => { setFilterDate(''); setFilterMonth(''); setFilterYear(''); }} className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 border border-gray-200">
-            Clear Filters
-          </button>
+      <div className="mt-6 bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
+          <Filter className="h-4 w-4 mr-2 text-gray-500" /> Filter Payments
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+          <div className="col-span-2 md:col-span-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Specific Date</label>
+            <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <div className="col-span-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Month</label>
+            <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black bg-white focus:ring-blue-500 focus:border-blue-500">
+              <option value="">All</option>
+              {months.map(m => <option key={m} value={m}>{m.substring(0,3)}</option>)}
+            </select>
+          </div>
+          <div className="col-span-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Year</label>
+            <input type="number" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} placeholder="e.g. 2026" className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <div className="col-span-2 md:col-span-1">
+            <button onClick={() => { setFilterDate(''); setFilterMonth(''); setFilterYear(''); }} className="w-full px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200 transition-colors">
+              Clear All
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="mt-6 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+            <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
@@ -230,7 +258,7 @@ export default function FeesPage() {
               <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="relative z-20 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div className="relative z-20 inline-block w-full max-w-lg align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle">
               <form onSubmit={handleSubmit}>
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
@@ -245,7 +273,7 @@ export default function FeesPage() {
                         {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.rollNumber})</option>)}
                       </select>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Month</label>
                         <select required name="month" value={formData.month} onChange={(e) => setFormData({...formData, month: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white">
@@ -257,7 +285,7 @@ export default function FeesPage() {
                         <input type="number" required value={formData.year} onChange={(e) => setFormData({...formData, year: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Amount (৳)</label>
                         <input type="number" required value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" />

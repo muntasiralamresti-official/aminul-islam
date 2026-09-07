@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function BatchesPage() {
   const [batches, setBatches] = useState([]);
@@ -12,25 +13,44 @@ export default function BatchesPage() {
     try {
       const res = await fetch('/api/batches');
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load batches');
       setBatches(data);
     } catch (error) {
-      console.error('Error fetching batches:', error);
+      toast.error(error.message || 'Failed to load batches');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBatches();
+    let active = true;
+    fetch('/api/batches')
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load batches');
+        if (active) setBatches(data);
+      })
+      .catch((error) => {
+        if (active) toast.error(error.message || 'Failed to load batches');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this batch?')) return;
     try {
-      await fetch(`/api/batches/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/batches/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete batch');
+      toast.success('Batch deleted');
       fetchBatches();
     } catch (error) {
-      console.error('Error deleting batch:', error);
+      toast.error(error.message || 'Error deleting batch');
     }
   };
 
@@ -48,7 +68,7 @@ export default function BatchesPage() {
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
           <Link
             href="/dashboard/batches/new"
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+            className="inline-flex w-full sm:w-auto items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             <Plus className="mr-2 h-4 w-4" /> Add Batch
           </Link>
@@ -58,7 +78,7 @@ export default function BatchesPage() {
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+            <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>

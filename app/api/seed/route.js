@@ -4,26 +4,30 @@ import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     await connectMongo();
-    
-    // Check if admin already exists
-    const adminExists = await User.findOne({ email: 'admin@coaching.com' });
-    if (adminExists) {
-      return NextResponse.json({ message: 'Admin already exists' });
-    }
+    const email = 'aminulislam@gmail.com';
+    const password = 'aminul-islam86';
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const admin = await User.findOneAndUpdate(
+      { role: 'admin' },
+      {
+        name: 'System Admin',
+        email,
+        password: hashedPassword,
+        role: 'admin',
+        status: 'active',
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
 
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-    
-    await User.create({
-      name: 'System Admin',
-      email: 'admin@coaching.com',
-      password: hashedPassword,
-      role: 'admin',
-      status: 'active',
+    return NextResponse.json({
+      message: `Admin ready. Email: ${admin.email}, Password: ${password}`,
     });
-
-    return NextResponse.json({ message: 'Admin created successfully. Email: admin@coaching.com, Password: admin123' });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -23,8 +23,12 @@ export default function ExamsPage() {
         fetch('/api/exams'),
         fetch('/api/batches')
       ]);
-      setExams(await examsRes.json());
-      setBatches(await batchesRes.json());
+      const examsData = await examsRes.json();
+      const batchesData = await batchesRes.json();
+      if (!examsRes.ok) throw new Error(examsData.error || 'Failed to load exams');
+      if (!batchesRes.ok) throw new Error(batchesData.error || 'Failed to load batches');
+      setExams(examsData);
+      setBatches(batchesData);
     } catch (error) {
       toast.error('Failed to load data');
     } finally {
@@ -33,7 +37,7 @@ export default function ExamsPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    Promise.resolve().then(fetchData);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -83,7 +87,7 @@ export default function ExamsPage() {
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+            className="inline-flex w-full sm:w-auto items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
           >
             <Plus className="mr-2 h-4 w-4" /> Create Exam
           </button>
@@ -93,7 +97,7 @@ export default function ExamsPage() {
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+            <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
@@ -144,7 +148,7 @@ export default function ExamsPage() {
               <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-            <div className="relative z-20 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div className="relative z-20 inline-block w-full max-w-lg align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle">
               <form onSubmit={handleSubmit}>
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Create New Exam</h3>
@@ -160,7 +164,7 @@ export default function ExamsPage() {
                         {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
                       </select>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Date</label>
                         <input type="date" required value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 border shadow-sm p-2 text-black" />

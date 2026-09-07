@@ -4,6 +4,12 @@ import connectMongo from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 
+const nextAuthSecret = process.env.NEXTAUTH_SECRET;
+
+if (process.env.NODE_ENV === 'production' && !nextAuthSecret) {
+  throw new Error('NEXTAUTH_SECRET must be configured in production');
+}
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -66,7 +72,7 @@ export const authOptions = {
   pages: {
     signIn: '/login',
   },
-  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-development',
+  secret: nextAuthSecret || 'fallback-secret-for-development',
 };
 
 const handler = NextAuth(authOptions);

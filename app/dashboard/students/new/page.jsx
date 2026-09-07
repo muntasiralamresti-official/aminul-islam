@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 export default function NewStudentPage() {
   const router = useRouter();
@@ -53,15 +54,16 @@ export default function NewStudentPage() {
       });
 
       if (res.ok) {
+        toast.success('Student registered successfully');
         router.push('/dashboard/students');
         router.refresh();
       } else {
         const errorData = await res.json();
-        alert(errorData.error || 'Something went wrong');
+        toast.error(errorData.error || 'Something went wrong');
       }
     } catch (error) {
       console.error(error);
-      alert('Failed to create student');
+      toast.error('Failed to create student');
     } finally {
       setLoading(false);
     }
@@ -192,18 +194,18 @@ export default function NewStudentPage() {
             />
           </div>
 
-          <div className="flex justify-end space-x-3 mt-6">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-6">
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+              className="w-full sm:w-auto px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50"
             >
               {loading ? 'Saving...' : 'Register Student'}
             </button>

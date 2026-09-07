@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Users, GraduationCap, CreditCard, AlertCircle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -40,7 +41,7 @@ export default function Dashboard() {
           <div key={item.name} className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className={`rounded-md p-3 ${item.bgColor}`}>
                     <item.icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
@@ -78,18 +79,18 @@ export default function Dashboard() {
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <a href="/dashboard/students/new" className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors">
+            <Link href="/dashboard/students/new" className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors">
               <Users className="h-8 w-8 text-blue-500 mb-2" />
               <span className="text-sm font-medium text-gray-900">Add New Student</span>
-            </a>
-            <a href="/dashboard/fees" className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors">
+            </Link>
+            <Link href="/dashboard/fees" className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors">
               <CreditCard className="h-8 w-8 text-green-500 mb-2" />
               <span className="text-sm font-medium text-gray-900">Record Payment</span>
-            </a>
-            <a href="/dashboard/batches/new" className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+            </Link>
+            <Link href="/dashboard/batches/new" className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
               <GraduationCap className="h-8 w-8 text-indigo-500 mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Batch</span>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

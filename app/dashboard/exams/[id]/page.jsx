@@ -27,7 +27,7 @@ export default function ExamResultsPage({ params }) {
   };
 
   useEffect(() => {
-    fetchData();
+    Promise.resolve().then(fetchData);
   }, [id]);
 
   const handleMarkChange = (studentId, field, value) => {

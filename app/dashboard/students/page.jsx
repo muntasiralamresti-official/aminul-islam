@@ -82,7 +82,8 @@ function StudentsContent() {
     (visiblePage - 1) * pageSize,
     visiblePage * pageSize,
   );
-  const firstResult = filteredStudents.length === 0 ? 0 : (visiblePage - 1) * pageSize + 1;
+  const firstResult =
+    filteredStudents.length === 0 ? 0 : (visiblePage - 1) * pageSize + 1;
   const lastResult = Math.min(visiblePage * pageSize, filteredStudents.length);
 
   if (loading)
@@ -229,12 +230,15 @@ function StudentsContent() {
             {filteredStudents.length > 0 && (
               <div className="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-gray-600">
-                  Showing {firstResult} to {lastResult} of {filteredStudents.length} students
+                  Showing {firstResult} to {lastResult} of{" "}
+                  {filteredStudents.length} students
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    onClick={() =>
+                      setCurrentPage((page) => Math.max(1, page - 1))
+                    }
                     disabled={visiblePage === 1}
                     className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -245,7 +249,9 @@ function StudentsContent() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    onClick={() =>
+                      setCurrentPage((page) => Math.min(totalPages, page + 1))
+                    }
                     disabled={visiblePage === totalPages}
                     className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >

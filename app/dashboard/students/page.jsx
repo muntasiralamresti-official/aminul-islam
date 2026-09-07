@@ -13,6 +13,8 @@ function StudentsContent() {
   const [searchQuery, setSearchQuery] = useState(
     () => searchParams.get("search") || "",
   );
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const fetchStudents = async () => {
     try {
@@ -74,6 +76,14 @@ function StudentsContent() {
       student.batch?.subject,
     ].some((value) => value?.toLowerCase().includes(query));
   });
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
+  const visiblePage = Math.min(currentPage, totalPages);
+  const paginatedStudents = filteredStudents.slice(
+    (visiblePage - 1) * pageSize,
+    visiblePage * pageSize,
+  );
+  const firstResult = filteredStudents.length === 0 ? 0 : (visiblePage - 1) * pageSize + 1;
+  const lastResult = Math.min(visiblePage * pageSize, filteredStudents.length);
 
   if (loading)
     return (
@@ -97,7 +107,10 @@ function StudentsContent() {
               type="text"
               placeholder="Search by name or roll..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm border p-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -138,7 +151,7 @@ function StudentsContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredStudents.map((student) => (
+                  {paginatedStudents.map((student) => (
                     <tr key={student._id}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                         {student.rollNumber}
@@ -213,6 +226,34 @@ function StudentsContent() {
                 </tbody>
               </table>
             </div>
+            {filteredStudents.length > 0 && (
+              <div className="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-600">
+                  Showing {firstResult} to {lastResult} of {filteredStudents.length} students
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={visiblePage === 1}
+                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="min-w-20 text-center text-sm text-gray-600">
+                    Page {visiblePage} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={visiblePage === totalPages}
+                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

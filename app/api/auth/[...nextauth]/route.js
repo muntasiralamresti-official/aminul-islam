@@ -64,7 +64,13 @@ export const authOptions = {
 
         let user = await User.findOne({ email }).select("+password");
 
-        if (!user && email === (process.env.ADMIN_EMAIL || "aminulislam@gmail.com").trim().toLowerCase()) {
+        if (
+          !user &&
+          email ===
+            (process.env.ADMIN_EMAIL || "aminulislam@gmail.com")
+              .trim()
+              .toLowerCase()
+        ) {
           user = await ensureDefaultAdmin();
         }
 

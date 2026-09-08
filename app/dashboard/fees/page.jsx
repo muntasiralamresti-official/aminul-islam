@@ -364,9 +364,15 @@ export default function FeesPage() {
                         required
                         name="student"
                         value={formData.student}
-                        onChange={(e) =>
-                          setFormData({ ...formData, student: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const studentId = e.target.value;
+                          const selectedStudent = students.find(s => s._id === studentId);
+                          setFormData({ 
+                            ...formData, 
+                            student: studentId,
+                            amount: selectedStudent?.monthlyFee ? selectedStudent.monthlyFee.toString() : formData.amount
+                          });
+                        }}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white"
                       >
                         <option value="">Select Student</option>
@@ -419,17 +425,10 @@ export default function FeesPage() {
                           Amount (৳)
                         </label>
                         <input
-                          type="text"
-                          inputMode="decimal"
-                          pattern="[0-9]*[.]?[0-9]*"
+                          type="number"
                           required
                           value={formData.amount}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                              setFormData({ ...formData, amount: value });
-                            }
-                          }}
+                          onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
                         />
                       </div>

@@ -4,6 +4,8 @@ import Student from '@/models/Student';
 import Batch from '@/models/Batch';
 import Payment from '@/models/Payment';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     await connectMongo();

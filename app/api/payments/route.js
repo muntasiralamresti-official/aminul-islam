@@ -3,6 +3,8 @@ import connectMongo from '@/lib/db';
 import Payment from '@/models/Payment';
 import Student from '@/models/Student'; // Ensure Student model is loaded
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     await connectMongo();

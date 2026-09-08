@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Filter } from "lucide-react";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function FeesPage() {
+  const router = useRouter();
   const [payments, setPayments] = useState([]);
   const [students, setStudents] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -23,39 +26,34 @@ export default function FeesPage() {
   const [filterDate, setFilterDate] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
+  const [filterBatch, setFilterBatch] = useState("");
+  const [filterStudent, setFilterStudent] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
   ];
 
   const fetchData = async () => {
     try {
-      const [paymentsRes, studentsRes] = await Promise.all([
+      const [paymentsRes, studentsRes, batchesRes] = await Promise.all([
         fetch("/api/payments"),
         fetch("/api/students"),
+        fetch("/api/batches"),
       ]);
       const pData = await paymentsRes.json();
       const sData = await studentsRes.json();
-      if (!paymentsRes.ok)
-        throw new Error(pData.error || "Failed to load payments");
-      if (!studentsRes.ok)
-        throw new Error(sData.error || "Failed to load students");
+      const bData = await batchesRes.json();
+      
+      if (!paymentsRes.ok) throw new Error(pData.error || "Failed to load payments");
+      if (!studentsRes.ok) throw new Error(sData.error || "Failed to load students");
+      
       setPayments(pData);
       setStudents(sData);
+      setBatches(bData);
     } catch (error) {
-      toast.error(error.message || "Failed to load fees and payments");
+      toast.error(error.message || "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -130,6 +128,7 @@ export default function FeesPage() {
         });
         setShowModal(false);
         fetchData();
+        router.refresh();
         setFormData({ ...formData, student: "", amount: "" }); // reset some fields
       } else {
         const error = await res.json();
@@ -151,6 +150,13 @@ export default function FeesPage() {
     }
     if (filterYear && p.year.toString() !== filterYear.toString()) {
       match = false;
+    }
+    if (filterStudent && p.student?._id !== filterStudent) {
+      match = false;
+    }
+    if (filterBatch) {
+      const studentData = students.find(s => s._id === p.student?._id);
+      if (studentData?.batch?._id !== filterBatch) match = false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -198,8 +204,43 @@ export default function FeesPage() {
         <h3 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
           <Filter className="h-4 w-4 mr-2 text-gray-500" /> Filter Payments
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <div className="col-span-2 md:col-span-1">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 items-end">
+          <div className="col-span-2 md:col-span-2">
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+              Batch
+            </label>
+            <select
+              value={filterBatch}
+              onChange={(e) => {
+                setFilterBatch(e.target.value);
+                setFilterStudent(""); // Reset student when batch changes
+              }}
+              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black bg-white focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">All Batches</option>
+              {batches.map((b) => (
+                <option key={b._id} value={b._id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-span-2 md:col-span-2">
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+              Student
+            </label>
+            <select
+              value={filterStudent}
+              onChange={(e) => setFilterStudent(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black bg-white focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">All Students</option>
+              {students
+                .filter(s => filterBatch ? s.batch?._id === filterBatch : true)
+                .map((s) => (
+                <option key={s._id} value={s._id}>{s.name} ({s.rollNumber})</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-span-2 md:col-span-2">
             <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
               Specific Date
             </label>
@@ -210,7 +251,7 @@ export default function FeesPage() {
               className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <div className="col-span-1">
+          <div className="col-span-1 md:col-span-2">
             <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
               Month
             </label>
@@ -227,7 +268,7 @@ export default function FeesPage() {
               ))}
             </select>
           </div>
-          <div className="col-span-1">
+          <div className="col-span-1 md:col-span-2">
             <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
               Year
             </label>
@@ -239,12 +280,14 @@ export default function FeesPage() {
               className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <div className="col-span-2 md:col-span-1">
+          <div className="col-span-2 md:col-span-2">
             <button
               onClick={() => {
                 setFilterDate("");
                 setFilterMonth("");
                 setFilterYear("");
+                setFilterBatch("");
+                setFilterStudent("");
               }}
               className="w-full px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200 transition-colors"
             >

@@ -13,7 +13,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/dashboard/stats')
+    fetch('/api/dashboard/stats', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(err => toast.error('Failed to load dashboard data'))

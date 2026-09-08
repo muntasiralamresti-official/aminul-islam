@@ -10,6 +10,37 @@ if (process.env.NODE_ENV === "production" && !nextAuthSecret) {
   throw new Error("NEXTAUTH_SECRET must be configured in production");
 }
 
+async function ensureDefaultAdmin() {
+  const adminEmail = (process.env.ADMIN_EMAIL || "aminulislam@gmail.com")
+    .trim()
+    .toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD || "aminul-islam86";
+
+  let adminUser = await User.findOne({ email: adminEmail }).select("+password");
+
+  if (!adminUser) {
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    adminUser = await User.create({
+      name: "System Admin",
+      email: adminEmail,
+      password: hashedPassword,
+      role: "admin",
+      status: "active",
+    });
+  }
+
+  if (adminUser.role !== "admin" || adminUser.status !== "active") {
+    adminUser.role = "admin";
+    adminUser.status = "active";
+    if (!adminUser.password) {
+      adminUser.password = await bcrypt.hash(adminPassword, 10);
+    }
+    await adminUser.save();
+  }
+
+  return adminUser;
+}
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -31,7 +62,11 @@ export const authOptions = {
 
         const email = credentials.email.trim().toLowerCase();
 
-        const user = await User.findOne({ email }).select("+password");
+        let user = await User.findOne({ email }).select("+password");
+
+        if (!user && email === (process.env.ADMIN_EMAIL || "aminulislam@gmail.com").trim().toLowerCase()) {
+          user = await ensureDefaultAdmin();
+        }
 
         if (!user) {
           throw new Error("No user found with this email");

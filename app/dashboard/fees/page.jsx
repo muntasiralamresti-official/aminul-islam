@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Filter } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import { Plus, Edit, Trash2, Filter } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function FeesPage() {
   const [payments, setPayments] = useState([]);
@@ -12,35 +12,50 @@ export default function FeesPage() {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    student: '',
-    month: 'January',
+    student: "",
+    month: "January",
     year: new Date().getFullYear(),
-    amount: '',
-    method: 'cash',
-    status: 'paid'
+    amount: "",
+    method: "cash",
+    status: "paid",
   });
 
-  const [filterDate, setFilterDate] = useState('');
-  const [filterMonth, setFilterMonth] = useState('');
-  const [filterYear, setFilterYear] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDate, setFilterDate] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterYear, setFilterYear] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
 
   const fetchData = async () => {
     try {
       const [paymentsRes, studentsRes] = await Promise.all([
-        fetch('/api/payments'),
-        fetch('/api/students')
+        fetch("/api/payments"),
+        fetch("/api/students"),
       ]);
       const pData = await paymentsRes.json();
       const sData = await studentsRes.json();
-      if (!paymentsRes.ok) throw new Error(pData.error || 'Failed to load payments');
-      if (!studentsRes.ok) throw new Error(sData.error || 'Failed to load students');
+      if (!paymentsRes.ok)
+        throw new Error(pData.error || "Failed to load payments");
+      if (!studentsRes.ok)
+        throw new Error(sData.error || "Failed to load students");
       setPayments(pData);
       setStudents(sData);
     } catch (error) {
-      toast.error(error.message || 'Failed to load fees and payments');
+      toast.error(error.message || "Failed to load fees and payments");
     } finally {
       setLoading(false);
     }
@@ -54,12 +69,12 @@ export default function FeesPage() {
     setEditMode(false);
     setEditingId(null);
     setFormData({
-      student: '',
-      month: 'January',
+      student: "",
+      month: "January",
       year: new Date().getFullYear(),
-      amount: '',
-      method: 'cash',
-      status: 'paid'
+      amount: "",
+      method: "cash",
+      status: "paid",
     });
     setShowModal(true);
   };
@@ -68,63 +83,67 @@ export default function FeesPage() {
     setEditMode(true);
     setEditingId(payment._id);
     setFormData({
-      student: payment.student?._id || '',
+      student: payment.student?._id || "",
       month: payment.month,
       year: payment.year,
       amount: payment.amount,
       method: payment.method,
-      status: payment.status
+      status: payment.status,
     });
     setShowModal(true);
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this payment?')) return;
+    if (!confirm("Are you sure you want to delete this payment?")) return;
     try {
-      const res = await fetch(`/api/payments/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/payments/${id}`, { method: "DELETE" });
       if (res.ok) {
-        toast.success('Payment deleted');
+        toast.success("Payment deleted");
         fetchData();
       } else {
         const error = await res.json();
-        toast.error(error.error || 'Failed to delete payment');
+        toast.error(error.error || "Failed to delete payment");
       }
     } catch (error) {
-      toast.error('Error deleting payment');
+      toast.error("Error deleting payment");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const toastId = toast.loading(editMode ? 'Updating payment...' : 'Recording payment...');
+    const toastId = toast.loading(
+      editMode ? "Updating payment..." : "Recording payment...",
+    );
     try {
-      const url = editMode ? `/api/payments/${editingId}` : '/api/payments';
-      const method = editMode ? 'PUT' : 'POST';
+      const url = editMode ? `/api/payments/${editingId}` : "/api/payments";
+      const method = editMode ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       if (res.ok) {
-        toast.success(editMode ? 'Payment updated' : 'Payment recorded', { id: toastId });
+        toast.success(editMode ? "Payment updated" : "Payment recorded", {
+          id: toastId,
+        });
         setShowModal(false);
         fetchData();
-        setFormData({ ...formData, student: '', amount: '' }); // reset some fields
+        setFormData({ ...formData, student: "", amount: "" }); // reset some fields
       } else {
         const error = await res.json();
-        toast.error(error.error || 'Failed to record payment', { id: toastId });
+        toast.error(error.error || "Failed to record payment", { id: toastId });
       }
     } catch (error) {
-      toast.error('Failed to record payment', { id: toastId });
+      toast.error("Failed to record payment", { id: toastId });
     }
   };
 
-  const filteredPayments = payments.filter(p => {
+  const filteredPayments = payments.filter((p) => {
     let match = true;
     if (filterDate) {
-      const pDate = new Date(p.date).toISOString().split('T')[0];
+      const pDate = new Date(p.date).toISOString().split("T")[0];
       if (pDate !== filterDate) match = false;
     }
     if (filterMonth && p.month !== filterMonth) {
@@ -135,8 +154,8 @@ export default function FeesPage() {
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const sName = p.student?.name?.toLowerCase() || '';
-      const sRoll = p.student?.rollNumber?.toLowerCase() || '';
+      const sName = p.student?.name?.toLowerCase() || "";
+      const sRoll = p.student?.rollNumber?.toLowerCase() || "";
       if (!sName.includes(q) && !sRoll.includes(q)) match = false;
     }
     return match;
@@ -148,8 +167,13 @@ export default function FeesPage() {
     <div>
       <div className="sm:flex sm:items-center justify-between">
         <div className="sm:flex-auto">
-          <h1 className="text-xl font-semibold text-gray-900">Fees & Payments</h1>
-          <p className="mt-2 text-sm text-gray-700">Manage student monthly fees, view payment history, and record new payments.</p>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Fees & Payments
+          </h1>
+          <p className="mt-2 text-sm text-gray-700">
+            Manage student monthly fees, view payment history, and record new
+            payments.
+          </p>
         </div>
         <div className="mt-4 sm:mt-0 sm:flex-none flex flex-col sm:flex-row gap-3">
           <div className="relative">
@@ -176,22 +200,54 @@ export default function FeesPage() {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
           <div className="col-span-2 md:col-span-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Specific Date</label>
-            <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500" />
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+              Specific Date
+            </label>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
           <div className="col-span-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Month</label>
-            <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black bg-white focus:ring-blue-500 focus:border-blue-500">
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+              Month
+            </label>
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black bg-white focus:ring-blue-500 focus:border-blue-500"
+            >
               <option value="">All</option>
-              {months.map(m => <option key={m} value={m}>{m.substring(0,3)}</option>)}
+              {months.map((m) => (
+                <option key={m} value={m}>
+                  {m.substring(0, 3)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="col-span-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Year</label>
-            <input type="number" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} placeholder="e.g. 2026" className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500" />
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+              Year
+            </label>
+            <input
+              type="number"
+              value={filterYear}
+              onChange={(e) => setFilterYear(e.target.value)}
+              placeholder="e.g. 2026"
+              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
           <div className="col-span-2 md:col-span-1">
-            <button onClick={() => { setFilterDate(''); setFilterMonth(''); setFilterYear(''); }} className="w-full px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200 transition-colors">
+            <button
+              onClick={() => {
+                setFilterDate("");
+                setFilterMonth("");
+                setFilterYear("");
+              }}
+              className="w-full px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200 transition-colors"
+            >
               Clear All
             </button>
           </div>
@@ -205,11 +261,21 @@ export default function FeesPage() {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Student</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Month / Year</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Amount</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Method</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date Paid</th>
+                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                      Student
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Month / Year
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Amount
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Method
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Date Paid
+                    </th>
                     <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
                     </th>
@@ -221,17 +287,29 @@ export default function FeesPage() {
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                         {payment.student?.name} ({payment.student?.rollNumber})
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{payment.month}, {payment.year}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 font-medium">৳ {payment.amount}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 capitalize">{payment.method}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {payment.month}, {payment.year}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 font-medium">
+                        ৳ {payment.amount}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 capitalize">
+                        {payment.method}
+                      </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {new Date(payment.date).toLocaleDateString()}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <button onClick={() => openEditModal(payment)} className="text-blue-600 hover:text-blue-900 mr-4">
+                        <button
+                          onClick={() => openEditModal(payment)}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
                           <Edit className="inline h-4 w-4" />
                         </button>
-                        <button onClick={() => handleDelete(payment._id)} className="text-red-600 hover:text-red-900">
+                        <button
+                          onClick={() => handleDelete(payment._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
                           <Trash2 className="inline h-4 w-4" />
                         </button>
                       </td>
@@ -239,7 +317,10 @@ export default function FeesPage() {
                   ))}
                   {filteredPayments.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="py-4 text-center text-sm text-gray-500">
+                      <td
+                        colSpan="6"
+                        className="py-4 text-center text-sm text-gray-500"
+                      >
                         No payments found matching the filters.
                       </td>
                     </tr>
@@ -254,40 +335,89 @@ export default function FeesPage() {
       {showModal && (
         <div className="fixed inset-0 z-10 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true" onClick={() => setShowModal(false)}>
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+              onClick={() => setShowModal(false)}
+            >
               <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
             <div className="relative z-20 inline-block w-full max-w-lg align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle">
               <form onSubmit={handleSubmit}>
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                    {editMode ? 'Edit Payment' : 'Record New Payment'}
+                    {editMode ? "Edit Payment" : "Record New Payment"}
                   </h3>
-                  
+
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Student</label>
-                      <select required name="student" value={formData.student} onChange={(e) => setFormData({...formData, student: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Student
+                      </label>
+                      <select
+                        required
+                        name="student"
+                        value={formData.student}
+                        onChange={(e) =>
+                          setFormData({ ...formData, student: e.target.value })
+                        }
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white"
+                      >
                         <option value="">Select Student</option>
-                        {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.rollNumber})</option>)}
+                        {students.map((s) => (
+                          <option key={s._id} value={s._id}>
+                            {s.name} ({s.rollNumber})
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Month</label>
-                        <select required name="month" value={formData.month} onChange={(e) => setFormData({...formData, month: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white">
-                          {months.map(m => <option key={m} value={m}>{m}</option>)}
+                        <label className="block text-sm font-medium text-gray-700">
+                          Month
+                        </label>
+                        <select
+                          required
+                          name="month"
+                          value={formData.month}
+                          onChange={(e) =>
+                            setFormData({ ...formData, month: e.target.value })
+                          }
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white"
+                        >
+                          {months.map((m) => (
+                            <option key={m} value={m}>
+                              {m}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Year</label>
-                        <input type="number" required value={formData.year} onChange={(e) => setFormData({...formData, year: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" />
+                        <label className="block text-sm font-medium text-gray-700">
+                          Year
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          value={formData.year}
+                          onChange={(e) =>
+                            setFormData({ ...formData, year: e.target.value })
+                          }
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Amount (৳)</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Amount (৳)
+                        </label>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -296,7 +426,7 @@ export default function FeesPage() {
                           value={formData.amount}
                           onChange={(e) => {
                             const value = e.target.value;
-                            if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                            if (value === "" || /^\d*\.?\d*$/.test(value)) {
                               setFormData({ ...formData, amount: value });
                             }
                           }}
@@ -304,8 +434,17 @@ export default function FeesPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Method</label>
-                        <select required value={formData.method} onChange={(e) => setFormData({...formData, method: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Method
+                        </label>
+                        <select
+                          required
+                          value={formData.method}
+                          onChange={(e) =>
+                            setFormData({ ...formData, method: e.target.value })
+                          }
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white"
+                        >
                           <option value="cash">Cash</option>
                           <option value="bkash">bKash</option>
                           <option value="nagad">Nagad</option>
@@ -316,10 +455,17 @@ export default function FeesPage() {
                   </div>
                 </div>
                 <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button type="submit" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                    {editMode ? 'Update Payment' : 'Save Payment'}
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    {editMode ? "Update Payment" : "Save Payment"}
                   </button>
-                  <button type="button" onClick={() => setShowModal(false)} className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
                     Cancel
                   </button>
                 </div>

@@ -5,6 +5,14 @@ import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
+const nextAuthUrls = (process.env.NEXTAUTH_URL || "")
+  .split(",")
+  .map((url) => url.trim())
+  .filter(Boolean);
+const nextAuthUrl =
+  process.env.NODE_ENV === "production"
+    ? nextAuthUrls.find((url) => !url.includes("localhost")) || nextAuthUrls[0]
+    : nextAuthUrls[0];
 
 if (process.env.NODE_ENV === "production" && !nextAuthSecret) {
   throw new Error("NEXTAUTH_SECRET must be configured in production");
@@ -122,7 +130,9 @@ export const authOptions = {
   pages: {
     signIn: "/login",
   },
+  trustHost: true,
   secret: nextAuthSecret || "fallback-secret-for-development",
+  ...(nextAuthUrl ? { site: nextAuthUrl } : {}),
 };
 
 const handler = NextAuth(authOptions);

@@ -16,6 +16,7 @@ import {
   X,
   BookOpen,
   Search,
+  PieChart,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -26,6 +27,7 @@ const navigation = [
   { name: "Exams & Results", href: "/dashboard/exams", icon: BookOpen },
   { name: "Fees & Payments", href: "/dashboard/fees", icon: CreditCard },
   { name: "Attendance", href: "/dashboard/attendance", icon: CalendarCheck },
+  { name: "Reports", href: "/dashboard/reports", icon: PieChart },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

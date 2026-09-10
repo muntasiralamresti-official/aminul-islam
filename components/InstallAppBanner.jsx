@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Download, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const DISMISS_KEY = 'aminul-islam-install-dismissed';
 
@@ -11,25 +12,42 @@ export default function InstallAppBanner() {
 
   useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return;
-    if (localStorage.getItem(DISMISS_KEY) === '1') return;
 
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault();
       setInstallEvent(event);
-      setVisible(true);
+      if (localStorage.getItem(DISMISS_KEY) !== '1') setVisible(true);
+    };
+
+    const handleInstallRequest = () => {
+      if (!installEvent) {
+        toast('Install is not available in this browser yet. Try Chrome/Edge on Android or desktop.', { icon: 'ℹ️' });
+        return;
+      }
+      installEvent.prompt();
+      installEvent.userChoice.finally(() => {
+        setInstallEvent(null);
+        setVisible(false);
+      });
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
+    window.addEventListener('aminul-islam-install-request', handleInstallRequest);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('aminul-islam-install-request', handleInstallRequest);
+    };
+  }, [installEvent]);
 
   if (!visible || !installEvent) return null;
 
-  const install = async () => {
+  const install = () => {
     installEvent.prompt();
-    await installEvent.userChoice;
-    setInstallEvent(null);
-    setVisible(false);
+    installEvent.userChoice.finally(() => {
+      setInstallEvent(null);
+      setVisible(false);
+    });
   };
 
   const dismiss = () => {

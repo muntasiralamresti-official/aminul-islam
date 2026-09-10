@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Coaching Center Dashboard",
   description: "Student management dashboard for coaching centers",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({ children }) {

@@ -1,79 +1,136 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Filter } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Edit, Trash2, Wallet, CircleDollarSign, AlertCircle, CheckCircle2, Clock3, History, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { TableSkeleton } from "@/components/LoadingSkeleton";
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+const PAYMENT_METHODS = ["cash", "bkash", "nagad", "bank"];
+const money = (value) => `৳ ${Number(value || 0).toLocaleString("en-BD")}`;
 
 export default function FeesPage() {
   const router = useRouter();
+  const now = new Date();
+  const [summary, setSummary] = useState(null);
   const [payments, setPayments] = useState([]);
   const [students, setStudents] = useState([]);
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const [selectedMonth, setSelectedMonth] = useState(MONTHS[now.getMonth()]);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [batchFilter, setBatchFilter] = useState("");
+  const [studentFilter, setStudentFilter] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyDate, setHistoryDate] = useState("");
+
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
   const [formData, setFormData] = useState({
     student: "",
-    month: "January",
-    year: new Date().getFullYear(),
+    month: MONTHS[now.getMonth()],
+    year: now.getFullYear(),
     amount: "",
     method: "cash",
     status: "paid",
   });
 
-  const [filterDate, setFilterDate] = useState("");
-  const [filterMonth, setFilterMonth] = useState("");
-  const [filterYear, setFilterYear] = useState("");
-  const [filterBatch, setFilterBatch] = useState("");
-  const [filterStudent, setFilterStudent] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const months = [
-    "January", "February", "March", "April", "May", "June", 
-    "July", "August", "September", "October", "November", "December"
-  ];
-
-  const fetchData = async () => {
+  const fetchInitialData = async () => {
+    setLoading(true);
+    setError("");
     try {
-      const [paymentsRes, studentsRes, batchesRes] = await Promise.all([
+      const [summaryRes, paymentsRes, studentsRes, batchesRes] = await Promise.all([
+        fetch(`/api/fees/summary?month=${encodeURIComponent(selectedMonth)}&year=${selectedYear}`),
         fetch("/api/payments"),
-        fetch("/api/students"),
+        fetch("/api/students?all=true"),
         fetch("/api/batches"),
       ]);
-      const pData = await paymentsRes.json();
-      const sData = await studentsRes.json();
-      const bData = await batchesRes.json();
-      
-      if (!paymentsRes.ok) throw new Error(pData.error || "Failed to load payments");
-      if (!studentsRes.ok) throw new Error(sData.error || "Failed to load students");
-      
-      setPayments(pData);
-      setStudents(sData);
-      setBatches(bData);
-    } catch (error) {
-      toast.error(error.message || "Failed to load data");
+      const [summaryData, paymentsData, studentsData, batchesData] = await Promise.all([
+        summaryRes.json(), paymentsRes.json(), studentsRes.json(), batchesRes.json(),
+      ]);
+      if (!summaryRes.ok) throw new Error(summaryData.error || "Failed to load fee summary");
+      if (!paymentsRes.ok) throw new Error(paymentsData.error || "Failed to load payment history");
+      if (!studentsRes.ok) throw new Error(studentsData.error || "Failed to load students");
+      if (!batchesRes.ok) throw new Error(batchesData.error || "Failed to load batches");
+      setSummary(summaryData);
+      setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+      setStudents(Array.isArray(studentsData) ? studentsData : []);
+      setBatches(Array.isArray(batchesData) ? batchesData : []);
+    } catch (err) {
+      setError(err.message || "Failed to load fees");
+      toast.error(err.message || "Failed to load fees");
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchSummary = async (month, year) => {
+    setSummaryLoading(true);
+    try {
+      const res = await fetch(`/api/fees/summary?month=${encodeURIComponent(month)}&year=${year}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load fee summary");
+      setSummary(data);
+    } catch (err) {
+      toast.error(err.message || "Failed to load fee summary");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   useEffect(() => {
-    Promise.resolve().then(fetchData);
+    fetchInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!summary) return;
+    fetchSummary(selectedMonth, selectedYear);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth, selectedYear]);
+
+  const filteredStudents = useMemo(() => {
+    const rows = summary?.students || [];
+    const query = studentSearch.trim().toLowerCase();
+    return rows.filter((student) => {
+      if (batchFilter && student.batch?._id !== batchFilter) return false;
+      if (studentFilter && student._id !== studentFilter) return false;
+      if (!query) return true;
+      return student.name?.toLowerCase().includes(query) ||
+        student.rollNumber?.toLowerCase().includes(query) ||
+        student.batch?.name?.toLowerCase().includes(query);
+    });
+  }, [summary, batchFilter, studentFilter, studentSearch]);
+
+  const filteredHistory = useMemo(() => {
+    const query = historySearch.trim().toLowerCase();
+    return payments
+      .filter((payment) => payment.month === selectedMonth && Number(payment.year) === Number(selectedYear))
+      .filter((payment) => {
+        if (historyDate && new Date(payment.date).toISOString().split("T")[0] !== historyDate) return false;
+        if (!query) return true;
+        const name = payment.student?.name?.toLowerCase() || "";
+        const roll = payment.student?.rollNumber?.toLowerCase() || "";
+        return name.includes(query) || roll.includes(query);
+      });
+  }, [payments, selectedMonth, selectedYear, historySearch, historyDate]);
 
   const openNewPaymentModal = () => {
     setEditMode(false);
     setEditingId(null);
-    setFormData({
-      student: "",
-      month: "January",
-      year: new Date().getFullYear(),
-      amount: "",
-      method: "cash",
-      status: "paid",
-    });
+    setFormData({ student: "", month: selectedMonth, year: selectedYear, amount: "", method: "cash", status: "paid" });
     setShowModal(true);
   };
 
@@ -91,431 +148,259 @@ export default function FeesPage() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this payment?")) return;
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const toastId = toast.loading("Deleting payment...");
     try {
-      const res = await fetch(`/api/payments/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        toast.success("Payment deleted");
-        fetchData();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to delete payment");
-      }
-    } catch (error) {
-      toast.error("Error deleting payment");
+      const res = await fetch(`/api/payments/${deleteId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to delete payment");
+      toast.success("Payment deleted", { id: toastId });
+      setDeleteId(null);
+      await fetchInitialData();
+      router.refresh();
+    } catch (err) {
+      toast.error(err.message || "Error deleting payment", { id: toastId });
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const toastId = toast.loading(
-      editMode ? "Updating payment..." : "Recording payment...",
-    );
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const amount = Number(formData.amount);
+    if (!formData.student) return toast.error("Please select a student");
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Please enter a valid payment amount");
+
+    const toastId = toast.loading(editMode ? "Updating payment..." : "Recording payment...");
     try {
       const url = editMode ? `/api/payments/${editingId}` : "/api/payments";
-      const method = editMode ? "PUT" : "POST";
-
       const res = await fetch(url, {
-        method,
+        method: editMode ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, amount }),
       });
-
-      if (res.ok) {
-        toast.success(editMode ? "Payment updated" : "Payment recorded", {
-          id: toastId,
-        });
-        setShowModal(false);
-        fetchData();
-        router.refresh();
-        setFormData({ ...formData, student: "", amount: "" }); // reset some fields
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to record payment", { id: toastId });
-      }
-    } catch (error) {
-      toast.error("Failed to record payment", { id: toastId });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to save payment");
+      toast.success(editMode ? "Payment updated" : "Payment recorded", { id: toastId });
+      setShowModal(false);
+      await fetchInitialData();
+      router.refresh();
+    } catch (err) {
+      toast.error(err.message || "Failed to save payment", { id: toastId });
     }
   };
 
-  const filteredPayments = payments.filter((p) => {
-    let match = true;
-    if (filterDate) {
-      const pDate = new Date(p.date).toISOString().split("T")[0];
-      if (pDate !== filterDate) match = false;
-    }
-    if (filterMonth && p.month !== filterMonth) {
-      match = false;
-    }
-    if (filterYear && p.year.toString() !== filterYear.toString()) {
-      match = false;
-    }
-    if (filterStudent && p.student?._id !== filterStudent) {
-      match = false;
-    }
-    if (filterBatch) {
-      const studentData = students.find(s => s._id === p.student?._id);
-      if (studentData?.batch?._id !== filterBatch) match = false;
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const sName = p.student?.name?.toLowerCase() || "";
-      const sRoll = p.student?.rollNumber?.toLowerCase() || "";
-      if (!sName.includes(q) && !sRoll.includes(q)) match = false;
-    }
-    return match;
-  });
+  const selectedStudentSummary = summary?.students?.find((student) => student._id === formData.student);
+  const years = Array.from({ length: 7 }, (_, index) => now.getFullYear() - 5 + index);
 
-  if (loading) return <div className="p-4">Loading fees and payments...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-52 animate-pulse rounded bg-gray-200" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, index) => <div key={index} className="h-28 animate-pulse rounded-xl bg-gray-100" />)}
+        </div>
+        <TableSkeleton rows={8} columns={7} />
+      </div>
+    );
+  }
+
+  if (error && !summary) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+        <AlertCircle className="mx-auto h-8 w-8 text-red-500" />
+        <h2 className="mt-3 text-lg font-semibold text-red-900">Couldn&apos;t load fee data</h2>
+        <p className="mt-1 text-sm text-red-700">{error}</p>
+        <button onClick={fetchInitialData} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"><RefreshCw className="h-4 w-4" /> Retry</button>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="sm:flex sm:items-center justify-between">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-semibold text-gray-900">
-            Fees & Payments
-          </h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Manage student monthly fees, view payment history, and record new
-            payments.
-          </p>
+    <div className="space-y-6 pb-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Fees & Payments</h1>
+          <p className="mt-1 text-sm text-gray-600">Student-wise collection, current month dues, previous arrears and payment history.</p>
         </div>
-        <div className="mt-4 sm:mt-0 sm:flex-none flex flex-col sm:flex-row gap-3">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search by student name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm border p-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
-            />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="rounded-md border-0 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" aria-label="Fee month">
+              {MONTHS.map((month) => <option key={month}>{month}</option>)}
+            </select>
+            <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="rounded-md border-0 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" aria-label="Fee year">
+              {years.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
           </div>
-          <button
-            onClick={openNewPaymentModal}
-            className="inline-flex w-full sm:w-auto items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Record Payment
-          </button>
+          <button onClick={openNewPaymentModal} className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"><Plus className="mr-2 h-4 w-4" /> Record Payment</button>
         </div>
       </div>
 
-      <div className="mt-6 bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
-          <Filter className="h-4 w-4 mr-2 text-gray-500" /> Filter Payments
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 items-end">
-          <div className="col-span-2 md:col-span-2">
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-              Batch
-            </label>
-            <select
-              value={filterBatch}
-              onChange={(e) => {
-                setFilterBatch(e.target.value);
-                setFilterStudent(""); // Reset student when batch changes
-              }}
-              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black bg-white focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">All Batches</option>
-              {batches.map((b) => (
-                <option key={b._id} value={b._id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-span-2 md:col-span-2">
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-              Student
-            </label>
-            <select
-              value={filterStudent}
-              onChange={(e) => setFilterStudent(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black bg-white focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">All Students</option>
-              {students
-                .filter(s => filterBatch ? s.batch?._id === filterBatch : true)
-                .map((s) => (
-                <option key={s._id} value={s._id}>{s.name} ({s.rollNumber})</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-span-2 md:col-span-2">
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-              Specific Date
-            </label>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div className="col-span-1 md:col-span-2">
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-              Month
-            </label>
-            <select
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black bg-white focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">All</option>
-              {months.map((m) => (
-                <option key={m} value={m}>
-                  {m.substring(0, 3)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-span-1 md:col-span-2">
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-              Year
-            </label>
-            <input
-              type="number"
-              value={filterYear}
-              onChange={(e) => setFilterYear(e.target.value)}
-              placeholder="e.g. 2026"
-              className="block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div className="col-span-2 md:col-span-2">
-            <button
-              onClick={() => {
-                setFilterDate("");
-                setFilterMonth("");
-                setFilterYear("");
-                setFilterBatch("");
-                setFilterStudent("");
-              }}
-              className="w-full px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200 transition-colors"
-            >
-              Clear All
-            </button>
-          </div>
-        </div>
+      {summaryLoading && <div className="flex items-center gap-2 text-xs font-medium text-blue-600"><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Updating {selectedMonth} {selectedYear}...</div>}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard title="Total Expected" value={money(summary?.totalExpected)} icon={CircleDollarSign} hint={`${selectedMonth} fee`} />
+        <StatCard title="Total Collected" value={money(summary?.totalCollected)} icon={Wallet} hint={`${summary?.paidStudents || 0} fully paid`} />
+        <StatCard title="Total Due" value={money(summary?.totalDue)} icon={AlertCircle} hint="Previous + current" />
+        <StatCard title="Paid Students" value={summary?.paidStudents || 0} icon={CheckCircle2} hint="Current month" />
+        <StatCard title="Unpaid / Partial" value={(summary?.unpaidStudents || 0) + (summary?.partialPayments || 0)} icon={Clock3} hint={`${summary?.unpaidStudents || 0} unpaid · ${summary?.partialPayments || 0} partial`} />
       </div>
 
-      <div className="mt-6 flex flex-col">
-        <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                      Student
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Month / Year
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Amount
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Method
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Date Paid
-                    </th>
-                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredPayments.map((payment) => (
-                    <tr key={payment._id}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        {payment.student?.name} ({payment.student?.rollNumber})
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {payment.month}, {payment.year}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 font-medium">
-                        ৳ {payment.amount}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 capitalize">
-                        {payment.method}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(payment.date).toLocaleDateString()}
-                      </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <button
-                          onClick={() => openEditModal(payment)}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
-                        >
-                          <Edit className="inline h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(payment._id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="inline h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredPayments.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan="6"
-                        className="py-4 text-center text-sm text-gray-500"
-                      >
-                        No payments found matching the filters.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <DueCard title="Previous Due" subtitle={`Outstanding before ${selectedMonth} ${selectedYear}`} value={summary?.previousDue} icon={History} tone="amber" />
+        <DueCard title="Current Month Due" subtitle={`${selectedMonth} ${selectedYear} only`} value={summary?.currentDue} icon={CircleDollarSign} tone="blue" />
+      </div>
+
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Student-wise Fee Dashboard</h2>
+              <p className="mt-1 text-xs text-gray-500">Active students · {selectedMonth} {selectedYear}</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search student / roll / batch" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:w-64" />
+              <select value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setStudentFilter(""); }} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
+                <option value="">All Batches</option>
+                {batches.map((batch) => <option key={batch._id} value={batch._id}>{batch.name}</option>)}
+              </select>
+              <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
+                <option value="">All Students</option>
+                {(summary?.students || []).filter((student) => batchFilter ? student.batch?._id === batchFilter : true).map((student) => <option key={student._id} value={student._id}>{student.name} ({student.rollNumber})</option>)}
+              </select>
             </div>
           </div>
         </div>
-      </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-[920px] w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Student</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Batch</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Monthly Fee</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Paid</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-amber-700">Previous Due</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-blue-700">Current Due</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {filteredStudents.map((student) => (
+                <tr key={student._id} className="transition-colors hover:bg-gray-50">
+                  <td className="px-4 py-3.5"><div className="font-semibold text-gray-900">{student.name}</div><div className="text-xs text-gray-500">Roll: {student.rollNumber}</div></td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{student.batch?.name || "—"}</td>
+                  <td className="px-4 py-3.5 text-right text-sm font-medium text-gray-700">{money(student.monthlyFee)}</td>
+                  <td className="px-4 py-3.5 text-right text-sm font-semibold text-emerald-700">{money(student.paid)}</td>
+                  <td className="px-4 py-3.5 text-right text-sm font-semibold text-amber-700">{money(student.previousDue)}</td>
+                  <td className="px-4 py-3.5 text-right text-sm font-semibold text-blue-700">{money(student.currentDue)}</td>
+                  <td className="px-4 py-3.5 text-center"><StatusBadge status={student.paymentStatus} /></td>
+                </tr>
+              ))}
+              {filteredStudents.length === 0 && <tr><td colSpan="7" className="px-4 py-10 text-center text-sm text-gray-500">No students found for the selected filters.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900"><History className="h-4 w-4" /> Payment History</h2>
+              <p className="mt-1 text-xs text-gray-500">Payments recorded for {selectedMonth} {selectedYear}</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} placeholder="Search payment history" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:w-56" />
+              <input type="date" value={historyDate} onChange={(e) => setHistoryDate(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+              <button onClick={() => { setHistorySearch(""); setHistoryDate(""); }} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-[820px] w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50"><tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Student</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Month / Year</th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Amount</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Method</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Date Paid</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
+            </tr></thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredHistory.map((payment) => (
+                <tr key={payment._id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3.5"><div className="font-medium text-gray-900">{payment.student?.name || "Unknown"}</div><div className="text-xs text-gray-500">{payment.student?.rollNumber || "—"}</div></td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{payment.month}, {payment.year}</td>
+                  <td className="px-4 py-3.5 text-right text-sm font-semibold text-emerald-700">{money(payment.amount)}</td>
+                  <td className="px-4 py-3.5 text-sm capitalize text-gray-600">{payment.method}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{payment.date ? new Date(payment.date).toLocaleDateString("en-BD") : "—"}</td>
+                  <td className="px-4 py-3.5 text-center">
+                    <button onClick={() => openEditModal(payment)} className="mr-3 text-blue-600 hover:text-blue-800" title="Edit payment"><Edit className="inline h-4 w-4" /></button>
+                    <button onClick={() => setDeleteId(payment._id)} className="text-red-600 hover:text-red-800" title="Delete payment"><Trash2 className="inline h-4 w-4" /></button>
+                  </td>
+                </tr>
+              ))}
+              {filteredHistory.length === 0 && <tr><td colSpan="6" className="px-4 py-10 text-center text-sm text-gray-500">No payment history for the selected month.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {showModal && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div
-              className="fixed inset-0 transition-opacity"
-              aria-hidden="true"
-              onClick={() => setShowModal(false)}
-            >
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-            <span
-              className="hidden sm:inline-block sm:align-middle sm:h-screen"
-              aria-hidden="true"
-            >
-              &#8203;
-            </span>
-            <div className="relative z-20 inline-block w-full max-w-lg align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle">
-              <form onSubmit={handleSubmit}>
-                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                    {editMode ? "Edit Payment" : "Record New Payment"}
-                  </h3>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Student
-                      </label>
-                      <select
-                        required
-                        name="student"
-                        value={formData.student}
-                        onChange={(e) => {
-                          const studentId = e.target.value;
-                          const selectedStudent = students.find(s => s._id === studentId);
-                          setFormData({ 
-                            ...formData, 
-                            student: studentId,
-                            amount: selectedStudent?.monthlyFee ? selectedStudent.monthlyFee.toString() : formData.amount
-                          });
-                        }}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white"
-                      >
-                        <option value="">Select Student</option>
-                        {students.map((s) => (
-                          <option key={s._id} value={s._id}>
-                            {s.name} ({s.rollNumber})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Month
-                        </label>
-                        <select
-                          required
-                          name="month"
-                          value={formData.month}
-                          onChange={(e) =>
-                            setFormData({ ...formData, month: e.target.value })
-                          }
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white"
-                        >
-                          {months.map((m) => (
-                            <option key={m} value={m}>
-                              {m}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Year
-                        </label>
-                        <input
-                          type="number"
-                          required
-                          value={formData.year}
-                          onChange={(e) =>
-                            setFormData({ ...formData, year: e.target.value })
-                          }
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Amount (৳)
-                        </label>
-                        <input
-                          type="number"
-                          required
-                          value={formData.amount}
-                          onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Method
-                        </label>
-                        <select
-                          required
-                          value={formData.method}
-                          onChange={(e) =>
-                            setFormData({ ...formData, method: e.target.value })
-                          }
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white"
-                        >
-                          <option value="cash">Cash</option>
-                          <option value="bkash">bKash</option>
-                          <option value="nagad">Nagad</option>
-                          <option value="bank">Bank</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
+        <div className="ui-modal fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <button className="absolute inset-0 h-full w-full cursor-default bg-gray-900/50" aria-label="Close modal" onClick={() => setShowModal(false)} />
+            <div className="ui-modal-panel relative z-10 w-full max-w-lg rounded-xl bg-white p-6 text-left shadow-2xl">
+              <div className="mb-5 flex items-start justify-between">
+                <div><h2 id="payment-modal-title" className="text-lg font-semibold text-gray-900">{editMode ? "Edit Payment" : "Record Payment"}</h2><p className="mt-1 text-xs text-gray-500">Payment month is separate from the date it was received.</p></div>
+                <button onClick={() => setShowModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close">×</button>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Student</label>
+                  <select required value={formData.student} onChange={(e) => setFormData({ ...formData, student: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select student</option>
+                    {students.map((student) => <option key={student._id} value={student._id}>{student.name} ({student.rollNumber})</option>)}
+                  </select>
+                  {selectedStudentSummary && <div className="mt-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">Monthly fee: <strong>{money(selectedStudentSummary.monthlyFee)}</strong> · Current due: <strong>{money(selectedStudentSummary.currentDue)}</strong> · Previous due: <strong>{money(selectedStudentSummary.previousDue)}</strong></div>}
                 </div>
-                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="submit"
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    {editMode ? "Update Payment" : "Save Payment"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    Cancel
-                  </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Month</label><select value={formData.month} onChange={(e) => setFormData({ ...formData, month: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900">{MONTHS.map((month) => <option key={month}>{month}</option>)}</select></div>
+                  <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Year</label><input type="number" min="2000" max="2100" value={formData.year} onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })} className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900" /></div>
                 </div>
+                <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Amount</label><input required min="1" step="0.01" type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="e.g. 1000" className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Payment Method</label><select value={formData.method} onChange={(e) => setFormData({ ...formData, method: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm capitalize text-gray-900">{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method}</option>)}</select></div>
+                  <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label><select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900"><option value="paid">Paid</option><option value="due">Due / Not Collected</option></select></div>
+                </div>
+                <div className="flex justify-end gap-3 border-t border-gray-100 pt-4"><button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button><button type="submit" className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">{editMode ? "Update Payment" : "Record Payment"}</button></div>
               </form>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog open={Boolean(deleteId)} title="Delete payment?" message="This payment record will be permanently deleted and the fee summary will be recalculated." confirmText="Delete Payment" cancelText="Cancel" danger onCancel={() => setDeleteId(null)} onConfirm={handleDelete} />
     </div>
   );
+}
+
+function StatCard({ title, value, icon: Icon, hint }) {
+  return <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p><Icon className="h-5 w-5 text-gray-400" /></div><p className="mt-3 text-2xl font-bold text-gray-900">{value}</p><p className="mt-1 text-xs text-gray-500">{hint}</p></div>;
+}
+
+function DueCard({ title, subtitle, value, icon: Icon, tone }) {
+  const classes = tone === "amber" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-blue-200 bg-blue-50 text-blue-900";
+  const iconClass = tone === "amber" ? "text-amber-600" : "text-blue-600";
+  return <div className={`rounded-xl border p-5 ${classes}`}><div className="flex items-start justify-between"><div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs opacity-80">{subtitle}</p></div><Icon className={`h-5 w-5 ${iconClass}`} /></div><p className="mt-4 text-2xl font-bold">{money(value)}</p></div>;
+}
+
+function StatusBadge({ status }) {
+  const config = {
+    paid: ["Paid", "bg-emerald-50 text-emerald-700 ring-emerald-600/20"],
+    partial: ["Partial", "bg-amber-50 text-amber-700 ring-amber-600/20"],
+    unpaid: ["Unpaid", "bg-red-50 text-red-700 ring-red-600/20"],
+  }[status] || ["Unknown", "bg-gray-50 text-gray-700 ring-gray-600/20"];
+  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${config[1]}`}>{config[0]}</span>;
 }

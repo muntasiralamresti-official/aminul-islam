@@ -1,0 +1,10 @@
+{
+  "name": "Aminul Islam Coaching Center",
+  "short_name": "Aminul Islam",
+  "description": "Coaching center management system",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary"
+}

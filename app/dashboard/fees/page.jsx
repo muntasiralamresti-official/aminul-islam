@@ -32,6 +32,8 @@ export default function FeesPage() {
   const [batchFilter, setBatchFilter] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
+  const [paymentDateFilter, setPaymentDateFilter] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [historyDate, setHistoryDate] = useState("");
 
@@ -108,12 +110,19 @@ export default function FeesPage() {
     return rows.filter((student) => {
       if (batchFilter && student.batch?._id !== batchFilter) return false;
       if (studentFilter && student._id !== studentFilter) return false;
+      if (paymentStatusFilter && student.paymentStatus !== paymentStatusFilter) return false;
+      if (paymentDateFilter) {
+        const latestDate = student.latestPayment?.date ? new Date(student.latestPayment.date) : null;
+        if (!latestDate || Number.isNaN(latestDate.getTime())) return false;
+        const localDate = `${latestDate.getFullYear()}-${String(latestDate.getMonth() + 1).padStart(2, "0")}-${String(latestDate.getDate()).padStart(2, "0")}`;
+        if (localDate !== paymentDateFilter) return false;
+      }
       if (!query) return true;
       return student.name?.toLowerCase().includes(query) ||
         student.rollNumber?.toLowerCase().includes(query) ||
         student.batch?.name?.toLowerCase().includes(query);
     });
-  }, [summary, batchFilter, studentFilter, studentSearch]);
+  }, [summary, batchFilter, studentFilter, studentSearch, paymentDateFilter, paymentStatusFilter]);
 
   const selectedStudent = studentFilter
     ? (summary?.students || []).find((student) => student._id === studentFilter)
@@ -285,12 +294,15 @@ export default function FeesPage() {
         <div className="border-b border-gray-200 p-4 sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div><h2 className="text-base font-semibold text-gray-900">Student-wise Fee Dashboard</h2><p className="mt-1 text-xs text-gray-500">Active students · {selectedMonth} {selectedYear} · Search/select a student to see last payment details</p></div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search student / roll / batch" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:w-64" />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
+              <input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search student / roll / batch" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 xl:w-56" />
               <select value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setStudentFilter(""); }} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"><option value="">All Batches</option>{batches.map((batch) => <option key={batch._id} value={batch._id}>{batch.name}</option>)}</select>
               <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"><option value="">All Students</option>{(summary?.students || []).filter((student) => batchFilter ? student.batch?._id === batchFilter : true).map((student) => <option key={student._id} value={student._id}>{student.name} ({student.rollNumber})</option>)}</select>
+              <input type="date" value={paymentDateFilter} onChange={(e) => setPaymentDateFilter(e.target.value)} aria-label="Filter by last payment date" title="Filter by last payment date" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+              <select value={paymentStatusFilter} onChange={(e) => setPaymentStatusFilter(e.target.value)} aria-label="Filter by payment status" className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"><option value="">Paid / Unpaid</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option></select>
             </div>
           </div>
+          {(paymentDateFilter || paymentStatusFilter) && <div className="mt-3 flex items-center gap-2 text-xs text-blue-700"><span>Filters active:</span>{paymentDateFilter && <span className="rounded-full bg-blue-50 px-2.5 py-1 font-medium">Last payment: {paymentDateFilter}</span>}{paymentStatusFilter && <span className="rounded-full bg-blue-50 px-2.5 py-1 font-medium">Status: {paymentStatusFilter}</span>}<button onClick={() => { setPaymentDateFilter(""); setPaymentStatusFilter(""); }} className="font-semibold underline hover:no-underline">Clear</button></div>}
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-[1100px] w-full divide-y divide-gray-200">

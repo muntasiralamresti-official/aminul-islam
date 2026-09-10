@@ -11,8 +11,8 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-function periodIndex(year, month) {
-  return year * 12 + month;
+function periodIndex(year, monthIndex) {
+  return year * 12 + monthIndex;
 }
 
 export async function GET(request) {
@@ -22,7 +22,9 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const year = Number.parseInt(searchParams.get('year'), 10) || new Date().getFullYear();
     const requestedMonth = searchParams.get('month') || MONTHS[new Date().getMonth()];
-    const month = MONTHS.includes(requestedMonth) ? requestedMonth : MONTHS[new Date().getMonth()];
+    const month = MONTHS.includes(requestedMonth)
+      ? requestedMonth
+      : MONTHS[new Date().getMonth()];
     const selectedMonthIndex = MONTHS.indexOf(month);
     const selectedPeriod = periodIndex(year, selectedMonthIndex);
 
@@ -35,36 +37,79 @@ export async function GET(request) {
       Setting.findOne().select('defaultFee').lean(),
     ]);
 
+    const defaultFee = Number(setting?.defaultFee ?? 1000) || 1000;
     const studentIds = students.map((student) => student._id);
-    const payments = studentIds.length
-      ? await Payment.find({
-          status: 'paid',
-          student: { $in: studentIds },
-          year: { $lte: year },
-        })
-          .select('student month year amount')
-          .lean()
+
+    // Aggregate payments in MongoDB instead of loading the complete payment
+    // history into the Next.js/Vercel function. This is important as payment
+    // history grows and prevents large responses/memory usage from causing
+    // intermittent production fetch failures.
+    const paymentTotals = studentIds.length
+      ? await Payment.aggregate([
+          {
+            $match: {
+              status: 'paid',
+              student: { $in: studentIds },
+              year: { $lte: year },
+            },
+          },
+          {
+            $addFields: {
+              monthIndex: { $indexOfArray: [MONTHS, '$month'] },
+            },
+          },
+          {
+            $match: {
+              monthIndex: { $gte: 0 },
+            },
+          },
+          {
+            $addFields: {
+              paymentPeriod: {
+                $add: [{ $multiply: ['$year', 12] }, '$monthIndex'],
+              },
+            },
+          },
+          {
+            $match: {
+              paymentPeriod: { $lte: selectedPeriod },
+            },
+          },
+          {
+            $group: {
+              _id: '$student',
+              previousPaid: {
+                $sum: {
+                  $cond: [
+                    { $eq: ['$paymentPeriod', selectedPeriod] },
+                    0,
+                    { $ifNull: ['$amount', 0] },
+                  ],
+                },
+              },
+              currentPaid: {
+                $sum: {
+                  $cond: [
+                    { $eq: ['$paymentPeriod', selectedPeriod] },
+                    { $ifNull: ['$amount', 0] },
+                    0,
+                  ],
+                },
+              },
+            },
+          },
+        ])
       : [];
 
-    const defaultFee = setting?.defaultFee ?? 1000;
-    const paymentTotals = new Map();
-
-    for (const payment of payments) {
-      const studentId = String(payment.student);
-      const monthIndex = MONTHS.indexOf(payment.month);
-      if (monthIndex < 0 || !Number.isFinite(payment.year)) continue;
-
-      const paymentPeriod = periodIndex(payment.year, monthIndex);
-      if (paymentPeriod > selectedPeriod) continue;
-
-      const entry = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
-      if (paymentPeriod === selectedPeriod) {
-        entry.currentPaid += Number(payment.amount) || 0;
-      } else {
-        entry.previousPaid += Number(payment.amount) || 0;
-      }
-      paymentTotals.set(studentId, entry);
-    }
+    const paymentMap = new Map(
+      paymentTotals.map((entry) => [
+        String(entry._id),
+        {
+          previousPaid: Number(entry.previousPaid) || 0,
+          currentPaid: Number(entry.currentPaid) || 0,
+        },
+      ]),
+    );
 
     const rows = students.map((student) => {
       const studentId = String(student._id);
@@ -82,7 +127,7 @@ export async function GET(request) {
         ? monthlyFee * (selectedPeriod - admissionPeriod)
         : 0;
 
-      const paid = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
+      const paid = paymentMap.get(studentId) || { previousPaid: 0, currentPaid: 0 };
       const previousDue = Math.max(previousExpected - paid.previousPaid, 0);
       const currentDue = Math.max(currentExpected - paid.currentPaid, 0);
       const totalDue = previousDue + currentDue;
@@ -139,6 +184,10 @@ export async function GET(request) {
       students: rows,
     });
   } catch (error) {
-    return NextResponse.json({ error: error.message || 'Failed to load fee summary' }, { status: 500 });
+    console.error('Fee summary error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to load fee summary' },
+      { status: 500 },
+    );
   }
 }

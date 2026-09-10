@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Users, CreditCard, AlertCircle, CheckCircle2, XCircle, CalendarCheck, WalletCards, Activity, GraduationCap } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 
 function DashboardLoading() {
@@ -172,9 +172,7 @@ export default function Dashboard() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `৳${value}`} />
                 <Tooltip formatter={(value) => [`৳${Number(value).toLocaleString()}`, 'Amount']} />
-                <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
-                  {financialData.map((entry) => <Cell key={entry.name} />)}
-                </Bar>
+                <Bar dataKey="amount" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -13,8 +13,9 @@ export default function GlobalDataLoader() {
       const input = args[0];
       const request = input instanceof Request ? input : null;
       const method = (args[1]?.method || request?.method || 'GET').toUpperCase();
-      const isApiGet = method === 'GET' &&
-        (typeof input === 'string' ? input.startsWith('/') : true);
+      const requestUrl = request?.url || (typeof input === 'string' ? input : '');
+      const pathname = requestUrl ? new URL(requestUrl, window.location.origin).pathname : '';
+      const isApiGet = method === 'GET' && pathname.startsWith('/api/');
 
       if (!isApiGet) return originalFetch(...args);
 

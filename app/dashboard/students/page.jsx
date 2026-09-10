@@ -1,53 +1,78 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Plus, Edit, Trash2, Eye } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Plus, Edit, Trash2, Eye, RefreshCw, WifiOff } from "lucide-react";
 import toast from "react-hot-toast";
+import { TableSkeleton } from "@/components/LoadingSkeleton";
 
 function StudentsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(
-    () => searchParams.get("search") || "",
-  );
-  const [currentPage, setCurrentPage] = useState(1);
+  const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") || "");
+  const [currentPage, setCurrentPage] = useState(() => Number(searchParams.get("page") || 1) || 1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10;
 
-  const fetchStudents = async () => {
+  useEffect(() => {
+    setSearchQuery(searchParams.get("search") || "");
+    setCurrentPage(Math.max(1, Number(searchParams.get("page") || 1) || 1));
+  }, [searchParams]);
+
+  const fetchStudents = useCallback(async () => {
+    setLoading(true);
+    setError("");
     try {
-      const res = await fetch("/api/students");
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(pageSize),
+      });
+      if (searchQuery.trim()) params.set("search", searchQuery.trim());
+
+      const res = await fetch(`/api/students?${params.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load students");
-      setStudents(data);
-    } catch (error) {
-      toast.error(error.message || "Failed to load students");
+
+      setStudents(data.students || []);
+      setTotal(data.total || 0);
+      setTotalPages(data.totalPages || 1);
+    } catch (fetchError) {
+      const message = fetchError.message || "Failed to load students";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchQuery]);
 
   useEffect(() => {
-    let active = true;
-    fetch("/api/students")
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to load students");
-        if (active) setStudents(data);
-      })
-      .catch((error) => {
-        if (active) toast.error(error.message || "Failed to load students");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    fetchStudents();
+  }, [fetchStudents]);
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  const updateUrl = (page, search = searchQuery) => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set("search", search.trim());
+    if (page > 1) params.set("page", String(page));
+    const query = params.toString();
+    router.replace(query ? `/dashboard/students?${query}` : "/dashboard/students");
+  };
+
+  const handleSearch = (value) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+    updateUrl(1, value);
+  };
+
+  const handlePageChange = (page) => {
+    const nextPage = Math.max(1, Math.min(totalPages, page));
+    setCurrentPage(nextPage);
+    updateUrl(nextPage);
+  };
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this student?")) return;
@@ -55,70 +80,69 @@ function StudentsContent() {
       const res = await fetch(`/api/students/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete student");
       toast.success("Student deleted");
-      fetchStudents();
-    } catch (error) {
-      toast.error(error.message || "Error deleting student");
+      if (students.length === 1 && currentPage > 1) {
+        handlePageChange(currentPage - 1);
+      } else {
+        fetchStudents();
+      }
+    } catch (deleteError) {
+      toast.error(deleteError.message || "Error deleting student");
     }
   };
 
-  const filteredStudents = students.filter((student) => {
-    const query = (searchParams.get("search") || searchQuery)
-      .trim()
-      .toLowerCase();
-    if (!query) return true;
-
-    return [
-      student.name,
-      student.rollNumber,
-      student.phone,
-      student.guardianPhone,
-      student.batch?.name,
-      student.batch?.subject,
-    ].some((value) => value?.toLowerCase().includes(query));
-  });
-  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
-  const visiblePage = Math.min(currentPage, totalPages);
-  const paginatedStudents = filteredStudents.slice(
-    (visiblePage - 1) * pageSize,
-    visiblePage * pageSize,
-  );
-  const firstResult =
-    filteredStudents.length === 0 ? 0 : (visiblePage - 1) * pageSize + 1;
-  const lastResult = Math.min(visiblePage * pageSize, filteredStudents.length);
-
-  if (loading)
+  if (loading) {
     return (
-      <div className="p-4 flex justify-center text-gray-500">
-        Loading students...
+      <div>
+        <div className="mb-8 flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-6 w-28 animate-pulse rounded bg-gray-200" />
+            <div className="h-4 w-72 animate-pulse rounded bg-gray-100" />
+          </div>
+          <div className="hidden h-10 w-32 animate-pulse rounded-md bg-gray-200 sm:block" />
+        </div>
+        <TableSkeleton columns={6} rows={7} />
       </div>
     );
+  }
+
+  if (error && students.length === 0) {
+    return (
+      <div className="flex min-h-[420px] items-center justify-center">
+        <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <WifiOff className="h-7 w-7" />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-gray-900">Couldn&apos;t load students</h2>
+          <p className="mt-2 text-sm text-gray-500">Check your internet connection or try again. Previously cached pages can still work offline.</p>
+          <button onClick={fetchStudents} className="mt-5 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            <RefreshCw className="mr-2 h-4 w-4" /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const firstResult = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastResult = Math.min(currentPage * pageSize, total);
 
   return (
     <div>
       <div className="sm:flex sm:items-center justify-between">
         <div className="sm:flex-auto">
           <h1 className="text-xl font-semibold text-gray-900">Students</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            A list of all the students in your coaching center.
-          </p>
+          <p className="mt-2 text-sm text-gray-700">A list of all the students in your coaching center.</p>
         </div>
         <div className="mt-4 sm:mt-0 sm:flex-none flex flex-col sm:flex-row gap-3">
           <div className="relative">
             <input
               type="text"
-              placeholder="Search by name or roll..."
+              placeholder="Search by name, roll, phone or batch..."
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm border p-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) => handleSearch(e.target.value)}
+              className="block w-full sm:w-72 rounded-md border-gray-300 shadow-sm border p-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <Link
-            href="/dashboard/students/new"
-            className="inline-flex w-full sm:w-auto items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none"
-          >
+          <Link href="/dashboard/students/new" className="inline-flex w-full sm:w-auto items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
             <Plus className="mr-2 h-4 w-4" /> Add Student
           </Link>
         </div>
@@ -131,132 +155,64 @@ function StudentsContent() {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                      Roll No
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Name
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Phone
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Batch
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Status
-                    </th>
-                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
-                    </th>
+                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Roll No</th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Phone</th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Batch</th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {paginatedStudents.map((student) => (
+                  {students.map((student) => (
                     <tr key={student._id}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        {student.rollNumber}
-                      </td>
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{student.rollNumber}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         <div className="flex items-center">
                           <div className="h-8 w-8 flex-shrink-0">
                             {student.photo ? (
-                              <img
-                                className="h-8 w-8 rounded-full object-cover border"
-                                src={student.photo}
-                                alt=""
-                              />
+                              <img className="h-8 w-8 rounded-full object-cover border" src={student.photo} alt="" />
                             ) : (
-                              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                                {student.name.charAt(0)}
-                              </div>
+                              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">{student.name.charAt(0)}</div>
                             )}
                           </div>
-                          <div className="ml-3 font-medium text-gray-900">
-                            {student.name}
-                          </div>
+                          <div className="ml-3 font-medium text-gray-900">{student.name}</div>
                         </div>
                       </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{student.phone}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{student.batch?.name || "N/A"}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {student.phone}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {student.batch?.name || "N/A"}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <span
-                          className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${student.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-                        >
-                          {student.status}
-                        </span>
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${student.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{student.status}</span>
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <Link
-                          href={`/dashboard/students/${student._id}`}
-                          className="text-gray-600 hover:text-gray-900 mr-4"
-                        >
-                          <Eye className="inline h-4 w-4" />
-                        </Link>
-                        <Link
-                          href={`/dashboard/students/${student._id}/edit`}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
-                        >
-                          <Edit className="inline h-4 w-4" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(student._id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="inline h-4 w-4" />
-                        </button>
+                        <Link href={`/dashboard/students/${student._id}`} className="text-gray-600 hover:text-gray-900 mr-4"><Eye className="inline h-4 w-4" /></Link>
+                        <Link href={`/dashboard/students/${student._id}/edit`} className="text-blue-600 hover:text-blue-900 mr-4"><Edit className="inline h-4 w-4" /></Link>
+                        <button onClick={() => handleDelete(student._id)} className="text-red-600 hover:text-red-900"><Trash2 className="inline h-4 w-4" /></button>
                       </td>
                     </tr>
                   ))}
-                  {filteredStudents.length === 0 && (
+                  {students.length === 0 && (
                     <tr>
-                      <td
-                        colSpan="6"
-                        className="py-4 text-center text-sm text-gray-500"
-                      >
-                        {students.length === 0
-                          ? "No students found. Create one to get started."
-                          : "No students match your search."}
+                      <td colSpan="6" className="py-12 text-center">
+                        <div className="mx-auto max-w-sm">
+                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600"><Plus className="h-6 w-6" /></div>
+                          <p className="mt-3 text-sm font-medium text-gray-900">{searchQuery ? "No students match your search" : "No students found"}</p>
+                          <p className="mt-1 text-sm text-gray-500">{searchQuery ? "Try a different name, roll, phone, or batch." : "Create your first student to get started."}</p>
+                        </div>
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
-            {filteredStudents.length > 0 && (
+
+            {total > 0 && (
               <div className="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-gray-600">
-                  Showing {firstResult} to {lastResult} of{" "}
-                  {filteredStudents.length} students
-                </p>
+                <p className="text-sm text-gray-600">Showing {firstResult} to {lastResult} of {total} students</p>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.max(1, page - 1))
-                    }
-                    disabled={visiblePage === 1}
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="min-w-20 text-center text-sm text-gray-600">
-                    Page {visiblePage} of {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.min(totalPages, page + 1))
-                    }
-                    disabled={visiblePage === totalPages}
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Next
-                  </button>
+                  <button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Previous</button>
+                  <span className="min-w-20 text-center text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
+                  <button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Next</button>
                 </div>
               </div>
             )}
@@ -269,13 +225,7 @@ function StudentsContent() {
 
 export default function StudentsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-4 flex justify-center text-gray-500">
-          Loading students...
-        </div>
-      }
-    >
+    <Suspense fallback={<TableSkeleton columns={6} rows={7} />}>
       <StudentsContent />
     </Suspense>
   );

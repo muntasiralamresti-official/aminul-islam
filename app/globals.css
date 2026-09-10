@@ -12,10 +12,35 @@
   --font-mono: var(--font-geist-mono);
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 160ms;
+  transition-timing-function: ease-out;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 /* Shared loader for dashboard pages that use a simple loading placeholder. */
@@ -55,18 +80,60 @@ main:has(> .p-4) > .p-4::after {
   animation: dashboard-loader-pulse 1.4s ease-in-out infinite;
 }
 
-@keyframes dashboard-loader-spin {
-  to {
-    transform: rotate(360deg);
+/* Page and modal motion */
+.page-transition {
+  animation: page-enter 220ms ease-out both;
+}
+
+.ui-modal {
+  animation: modal-backdrop-in 160ms ease-out both;
+}
+
+.ui-modal-panel {
+  animation: modal-panel-in 190ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+/* Tables remain usable on narrow screens while preserving all columns. */
+table {
+  min-width: 640px;
+}
+
+@media (max-width: 640px) {
+  table th, table td {
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
   }
 }
 
+@keyframes dashboard-loader-spin {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes dashboard-loader-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-panel-in {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

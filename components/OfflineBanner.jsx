@@ -8,20 +8,26 @@ export default function OfflineBanner() {
   const [showBackOnline, setShowBackOnline] = useState(false);
 
   useEffect(() => {
+    let timer;
+
     const update = () => {
       const isOnline = navigator.onLine;
       setOnline(isOnline);
+      clearTimeout(timer);
       if (isOnline) {
         setShowBackOnline(true);
-        const timer = setTimeout(() => setShowBackOnline(false), 2500);
-        return () => clearTimeout(timer);
+        timer = setTimeout(() => setShowBackOnline(false), 2500);
+      } else {
+        setShowBackOnline(false);
       }
     };
 
     update();
     window.addEventListener('online', update);
     window.addEventListener('offline', update);
+
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('online', update);
       window.removeEventListener('offline', update);
     };
@@ -41,7 +47,7 @@ export default function OfflineBanner() {
   return (
     <div className="fixed right-4 top-4 z-[100] flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-lg">
       <Wifi className="h-4 w-4" />
-      Back online — syncing fresh data.
+      Back online — fresh data is available.
     </div>
   );
 }

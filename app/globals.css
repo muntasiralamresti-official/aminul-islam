@@ -82,6 +82,9 @@ main:has(> .p-4) > .p-4::after {
 
 /* Page and modal motion */
 .page-transition {
+  /* Keep page motion on opacity only. A transform here creates a containing
+     block for position:fixed children and causes dashboard modals to center
+     relative to the page instead of the viewport. */
   animation: page-enter 220ms ease-out both;
 }
 
@@ -115,8 +118,8 @@ table {
 }
 
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes modal-backdrop-in {

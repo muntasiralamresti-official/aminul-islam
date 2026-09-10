@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import OfflineBanner from './OfflineBanner';
 import GlobalDataLoader from './GlobalDataLoader';
 import InstallAppBanner from './InstallAppBanner';
+import KeyboardShortcuts from './KeyboardShortcuts';
 
 export default function Providers({ children }) {
   useEffect(() => {
@@ -18,10 +19,11 @@ export default function Providers({ children }) {
 
   return (
     <SessionProvider>
-      <Toaster position="top-right" />
+      <Toaster position="top-right" toastOptions={{ duration: 3200 }} />
       <OfflineBanner />
       <GlobalDataLoader />
       <InstallAppBanner />
+      <KeyboardShortcuts />
       {children}
     </SessionProvider>
   );

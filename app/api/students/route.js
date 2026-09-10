@@ -1,24 +1,66 @@
 import { NextResponse } from 'next/server';
 import connectMongo from '@/lib/db';
 import Student from '@/models/Student';
-import Batch from '@/models/Batch'; // Ensure Batch is loaded
+import Batch from '@/models/Batch';
 
 export async function GET(request) {
   try {
     await connectMongo();
     const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batch');
+    const search = searchParams.get('search')?.trim() || '';
+    const hasPagination = searchParams.has('page') || searchParams.has('limit') || Boolean(search);
+    const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(searchParams.get('limit') || '10', 10) || 10));
+    const all = searchParams.get('all') === 'true';
 
-    let query = {};
+    const query = {};
     if (batchId) query.batch = batchId;
 
-    // Sort by MongoDB's built-in _id index to avoid the in-memory
-    // sort limit that can occur when sorting by an unindexed createdAt field.
-    const students = await Student.find(query)
-      .populate('batch', 'name subject')
-      .sort({ _id: -1 });
+    if (search) {
+      const batchMatches = await Batch.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { subject: { $regex: search, $options: 'i' } },
+        ],
+      }).select('_id').lean();
 
-    return NextResponse.json(students);
+      const searchOr = [
+        { name: { $regex: search, $options: 'i' } },
+        { rollNumber: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { guardianPhone: { $regex: search, $options: 'i' } },
+      ];
+
+      if (batchMatches.length) {
+        searchOr.push({ batch: { $in: batchMatches.map((batch) => batch._id) } });
+      }
+      query.$or = searchOr;
+    }
+
+    if (!hasPagination || all) {
+      const students = await Student.find(query)
+        .populate('batch', 'name subject')
+        .sort({ _id: -1 });
+      return NextResponse.json(students);
+    }
+
+    const [students, total] = await Promise.all([
+      Student.find(query)
+        .populate('batch', 'name subject')
+        .sort({ _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Student.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      students,
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -29,7 +71,6 @@ export async function POST(request) {
     const body = await request.json();
     await connectMongo();
 
-    // Check roll number uniqueness
     const existing = await Student.findOne({ rollNumber: body.rollNumber });
     if (existing) {
       return NextResponse.json({ error: 'Roll number already exists' }, { status: 400 });

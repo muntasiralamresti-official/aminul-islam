@@ -1,7 +1,7 @@
-const CACHE_NAME = 'aminul-islam-v3';
+const CACHE_NAME = 'aminul-islam-v4';
 const OFFLINE_URL = '/offline.html';
-const NAVIGATION_TIMEOUT = 5000;
-const API_TIMEOUT = 8000;
+const NAVIGATION_TIMEOUT = 10000;
+const API_TIMEOUT = 15000;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function KeyboardShortcuts() {
   const router = useRouter();
+  const sequenceTimer = useRef(null);
+  const awaitingGo = useRef(false);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -21,21 +23,35 @@ export default function KeyboardShortcuts() {
         return;
       }
 
-      if (!typing && event.key === '/') {
+      if (typing) return;
+
+      if (event.key === '/') {
         event.preventDefault();
-        const search = document.querySelector('input[aria-label="Search students"]');
-        if (search) search.focus();
+        document.querySelector('input[aria-label="Search students"]')?.focus();
         return;
       }
 
-      if (!typing && event.key.toLowerCase() === 'g') {
-        const next = { d: '/dashboard', s: '/dashboard/students', b: '/dashboard/batches', f: '/dashboard/fees' }[event.key.toLowerCase()];
-        if (next) router.push(next);
+      const key = event.key.toLowerCase();
+      if (key === 'g') {
+        awaitingGo.current = true;
+        clearTimeout(sequenceTimer.current);
+        sequenceTimer.current = setTimeout(() => { awaitingGo.current = false; }, 1200);
+        return;
+      }
+
+      if (awaitingGo.current) {
+        const routes = { d: '/dashboard', s: '/dashboard/students', b: '/dashboard/batches', f: '/dashboard/fees' };
+        if (routes[key]) router.push(routes[key]);
+        awaitingGo.current = false;
+        clearTimeout(sequenceTimer.current);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(sequenceTimer.current);
+    };
   }, [router]);
 
   return null;

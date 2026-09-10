@@ -13,10 +13,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Coaching Center Dashboard",
-  description: "Student management dashboard for coaching centers",
+  title: "Aminul Islam Coaching Center",
+  description: "Coaching center management dashboard",
   manifest: "/manifest.webmanifest",
   themeColor: "#2563eb",
+  icons: {
+    icon: [
+      { url: "/icon-192.svg", type: "image/svg+xml", sizes: "192x192" },
+      { url: "/icon-512.svg", type: "image/svg+xml", sizes: "512x512" },
+    ],
+    apple: "/icon-192.svg",
+  },
 };
 
 export default function RootLayout({ children }) {

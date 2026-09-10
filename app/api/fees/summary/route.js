@@ -15,43 +15,42 @@ function periodIndex(year, month) {
   return year * 12 + month;
 }
 
-function monthsBetween(startYear, startMonth, endYear, endMonth) {
-  return periodIndex(endYear, endMonth) - periodIndex(startYear, startMonth) + 1;
-}
-
 export async function GET(request) {
   try {
     await connectMongo();
 
     const { searchParams } = new URL(request.url);
     const year = Number.parseInt(searchParams.get('year'), 10) || new Date().getFullYear();
-    const monthParam = searchParams.get('month') || MONTHS[new Date().getMonth()];
-    const month = MONTHS.includes(monthParam) ? monthParam : MONTHS[new Date().getMonth()];
+    const requestedMonth = searchParams.get('month') || MONTHS[new Date().getMonth()];
+    const month = MONTHS.includes(requestedMonth) ? requestedMonth : MONTHS[new Date().getMonth()];
     const selectedMonthIndex = MONTHS.indexOf(month);
     const selectedPeriod = periodIndex(year, selectedMonthIndex);
 
-    const [students, payments, setting] = await Promise.all([
+    const [students, setting] = await Promise.all([
       Student.find({ status: 'active' })
         .select('name rollNumber monthlyFee batch admissionDate status')
         .populate('batch', 'name')
-        .sort({ name: 1 })
-        .lean(),
-      Payment.find({ status: 'paid' })
-        .select('student month year amount method date status')
-        .populate('student', 'name rollNumber')
-        .sort({ date: -1 })
+        .sort({ _id: 1 })
         .lean(),
       Setting.findOne().select('defaultFee').lean(),
     ]);
 
+    const studentIds = students.map((student) => student._id);
+    const payments = studentIds.length
+      ? await Payment.find({
+          status: 'paid',
+          student: { $in: studentIds },
+          year: { $lte: year },
+        })
+          .select('student month year amount')
+          .lean()
+      : [];
+
     const defaultFee = setting?.defaultFee ?? 1000;
-    const studentIds = new Set(students.map((student) => String(student._id)));
-
     const paymentTotals = new Map();
-    for (const payment of payments) {
-      const studentId = payment.student?._id ? String(payment.student._id) : String(payment.student);
-      if (!studentIds.has(studentId)) continue;
 
+    for (const payment of payments) {
+      const studentId = String(payment.student);
       const monthIndex = MONTHS.indexOf(payment.month);
       if (monthIndex < 0 || !Number.isFinite(payment.year)) continue;
 
@@ -61,7 +60,7 @@ export async function GET(request) {
       const entry = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
       if (paymentPeriod === selectedPeriod) {
         entry.currentPaid += Number(payment.amount) || 0;
-      } else if (paymentPeriod < selectedPeriod) {
+      } else {
         entry.previousPaid += Number(payment.amount) || 0;
       }
       paymentTotals.set(studentId, entry);
@@ -76,11 +75,11 @@ export async function GET(request) {
       const admissionPeriod = Number.isFinite(admissionYear) && Number.isFinite(admissionMonth)
         ? periodIndex(admissionYear, admissionMonth)
         : selectedPeriod;
-
       const isAdmittedBySelectedMonth = admissionPeriod <= selectedPeriod;
+
       const currentExpected = isAdmittedBySelectedMonth ? monthlyFee : 0;
       const previousExpected = isAdmittedBySelectedMonth && admissionPeriod < selectedPeriod
-        ? monthlyFee * Math.max(selectedPeriod - admissionPeriod, 0)
+        ? monthlyFee * (selectedPeriod - admissionPeriod)
         : 0;
 
       const paid = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
@@ -136,7 +135,7 @@ export async function GET(request) {
       month,
       year,
       ...summary,
-      totalDue: summary.currentDue + summary.previousDue,
+      totalDue: summary.previousDue + summary.currentDue,
       students: rows,
     });
   } catch (error) {

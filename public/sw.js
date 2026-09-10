@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aminul-islam-v1';
+const CACHE_NAME = 'aminul-islam-v2';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
@@ -29,6 +29,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/auth/')) return;
 
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirst(request));

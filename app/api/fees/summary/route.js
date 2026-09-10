@@ -22,9 +22,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const year = Number.parseInt(searchParams.get('year'), 10) || new Date().getFullYear();
     const requestedMonth = searchParams.get('month') || MONTHS[new Date().getMonth()];
-    const month = MONTHS.includes(requestedMonth)
-      ? requestedMonth
-      : MONTHS[new Date().getMonth()];
+    const month = MONTHS.includes(requestedMonth) ? requestedMonth : MONTHS[new Date().getMonth()];
     const selectedMonthIndex = MONTHS.indexOf(month);
     const selectedPeriod = periodIndex(year, selectedMonthIndex);
 
@@ -40,76 +38,36 @@ export async function GET(request) {
     const defaultFee = Number(setting?.defaultFee ?? 1000) || 1000;
     const studentIds = students.map((student) => student._id);
 
-    // Aggregate payments in MongoDB instead of loading the complete payment
-    // history into the Next.js/Vercel function. This is important as payment
-    // history grows and prevents large responses/memory usage from causing
-    // intermittent production fetch failures.
-    const paymentTotals = studentIds.length
-      ? await Payment.aggregate([
-          {
-            $match: {
-              status: 'paid',
-              student: { $in: studentIds },
-              year: { $lte: year },
-            },
-          },
-          {
-            $addFields: {
-              monthIndex: { $indexOfArray: [MONTHS, '$month'] },
-            },
-          },
-          {
-            $match: {
-              monthIndex: { $gte: 0 },
-            },
-          },
-          {
-            $addFields: {
-              paymentPeriod: {
-                $add: [{ $multiply: ['$year', 12] }, '$monthIndex'],
-              },
-            },
-          },
-          {
-            $match: {
-              paymentPeriod: { $lte: selectedPeriod },
-            },
-          },
-          {
-            $group: {
-              _id: '$student',
-              previousPaid: {
-                $sum: {
-                  $cond: [
-                    { $eq: ['$paymentPeriod', selectedPeriod] },
-                    0,
-                    { $ifNull: ['$amount', 0] },
-                  ],
-                },
-              },
-              currentPaid: {
-                $sum: {
-                  $cond: [
-                    { $eq: ['$paymentPeriod', selectedPeriod] },
-                    { $ifNull: ['$amount', 0] },
-                    0,
-                  ],
-                },
-              },
-            },
-          },
-        ])
+    // Keep the query simple and compatible with the MongoDB versions commonly
+    // used by this project. Only the fields needed for the fee calculation are
+    // loaded, and only payments belonging to active students are considered.
+    const payments = studentIds.length
+      ? await Payment.find({
+          status: 'paid',
+          student: { $in: studentIds },
+          year: { $lte: year },
+        })
+          .select('student month year amount')
+          .lean()
       : [];
 
-    const paymentMap = new Map(
-      paymentTotals.map((entry) => [
-        String(entry._id),
-        {
-          previousPaid: Number(entry.previousPaid) || 0,
-          currentPaid: Number(entry.currentPaid) || 0,
-        },
-      ]),
-    );
+    const paymentTotals = new Map();
+    for (const payment of payments) {
+      const monthIndex = MONTHS.indexOf(payment.month);
+      if (monthIndex < 0 || !Number.isFinite(Number(payment.year))) continue;
+
+      const paymentPeriod = periodIndex(Number(payment.year), monthIndex);
+      if (paymentPeriod > selectedPeriod) continue;
+
+      const studentId = String(payment.student);
+      const entry = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
+      const amount = Number(payment.amount) || 0;
+
+      if (paymentPeriod === selectedPeriod) entry.currentPaid += amount;
+      else entry.previousPaid += amount;
+
+      paymentTotals.set(studentId, entry);
+    }
 
     const rows = students.map((student) => {
       const studentId = String(student._id);
@@ -126,18 +84,13 @@ export async function GET(request) {
       const previousExpected = isAdmittedBySelectedMonth && admissionPeriod < selectedPeriod
         ? monthlyFee * (selectedPeriod - admissionPeriod)
         : 0;
-
-      const paid = paymentMap.get(studentId) || { previousPaid: 0, currentPaid: 0 };
+      const paid = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
       const previousDue = Math.max(previousExpected - paid.previousPaid, 0);
       const currentDue = Math.max(currentExpected - paid.currentPaid, 0);
-      const totalDue = previousDue + currentDue;
 
       let paymentStatus = 'unpaid';
-      if (currentExpected > 0 && paid.currentPaid >= currentExpected) {
-        paymentStatus = 'paid';
-      } else if (paid.currentPaid > 0) {
-        paymentStatus = 'partial';
-      }
+      if (currentExpected > 0 && paid.currentPaid >= currentExpected) paymentStatus = 'paid';
+      else if (paid.currentPaid > 0) paymentStatus = 'partial';
 
       return {
         _id: student._id,
@@ -149,32 +102,29 @@ export async function GET(request) {
         paid: paid.currentPaid,
         currentDue,
         previousDue,
-        totalDue,
+        totalDue: previousDue + currentDue,
         paymentStatus,
       };
     });
 
-    const summary = rows.reduce(
-      (acc, row) => {
-        acc.totalExpected += row.expected;
-        acc.totalCollected += row.paid;
-        acc.currentDue += row.currentDue;
-        acc.previousDue += row.previousDue;
-        if (row.paymentStatus === 'paid') acc.paidStudents += 1;
-        if (row.paymentStatus === 'unpaid') acc.unpaidStudents += 1;
-        if (row.paymentStatus === 'partial') acc.partialPayments += 1;
-        return acc;
-      },
-      {
-        totalExpected: 0,
-        totalCollected: 0,
-        currentDue: 0,
-        previousDue: 0,
-        paidStudents: 0,
-        unpaidStudents: 0,
-        partialPayments: 0,
-      },
-    );
+    const summary = rows.reduce((acc, row) => {
+      acc.totalExpected += row.expected;
+      acc.totalCollected += row.paid;
+      acc.currentDue += row.currentDue;
+      acc.previousDue += row.previousDue;
+      if (row.paymentStatus === 'paid') acc.paidStudents += 1;
+      if (row.paymentStatus === 'unpaid') acc.unpaidStudents += 1;
+      if (row.paymentStatus === 'partial') acc.partialPayments += 1;
+      return acc;
+    }, {
+      totalExpected: 0,
+      totalCollected: 0,
+      currentDue: 0,
+      previousDue: 0,
+      paidStudents: 0,
+      unpaidStudents: 0,
+      partialPayments: 0,
+    });
 
     return NextResponse.json({
       month,

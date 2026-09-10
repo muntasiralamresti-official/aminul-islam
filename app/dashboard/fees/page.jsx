@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Edit, Trash2, Wallet, CircleDollarSign, AlertCircle, CheckCircle2, Clock3, History, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, CircleDollarSign, AlertCircle, CheckCircle2, Clock3, History, RefreshCw, CalendarDays } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -14,6 +14,7 @@ const MONTHS = [
 
 const PAYMENT_METHODS = ["cash", "bkash", "nagad", "bank"];
 const money = (value) => `৳ ${Number(value || 0).toLocaleString("en-BD")}`;
+const formatDate = (value) => value ? new Date(value).toLocaleDateString("en-BD", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
 export default function FeesPage() {
   const router = useRouter();
@@ -114,6 +115,10 @@ export default function FeesPage() {
     });
   }, [summary, batchFilter, studentFilter, studentSearch]);
 
+  const selectedStudent = studentFilter
+    ? (summary?.students || []).find((student) => student._id === studentFilter)
+    : null;
+
   const filteredHistory = useMemo(() => {
     const query = historySearch.trim().toLowerCase();
     return payments
@@ -130,7 +135,7 @@ export default function FeesPage() {
   const openNewPaymentModal = () => {
     setEditMode(false);
     setEditingId(null);
-    setFormData({ student: "", month: selectedMonth, year: selectedYear, amount: "", method: "cash", status: "paid" });
+    setFormData({ student: studentFilter || "", month: selectedMonth, year: selectedYear, amount: "", method: "cash", status: "paid" });
     setShowModal(true);
   };
 
@@ -199,7 +204,7 @@ export default function FeesPage() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
           {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-28 animate-pulse rounded-xl bg-gray-100" />)}
         </div>
-        <TableSkeleton rows={8} columns={7} />
+        <TableSkeleton rows={8} columns={9} />
       </div>
     );
   }
@@ -251,10 +256,35 @@ export default function FeesPage() {
         <DueCard title="Current Month Due" subtitle={`${selectedMonth} ${selectedYear} only`} value={summary?.currentDue} icon={CircleDollarSign} tone="blue" />
       </div>
 
+      {selectedStudent && (
+        <section className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Selected Student</p>
+              <h2 className="mt-1 text-lg font-bold text-gray-900">{selectedStudent.name}</h2>
+              <p className="text-sm text-gray-500">Roll: {selectedStudent.rollNumber} · {selectedStudent.batch?.name || "No batch"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <InfoMetric label="Monthly Fee" value={money(selectedStudent.monthlyFee)} />
+              <InfoMetric label="Current Paid" value={money(selectedStudent.paid)} />
+              <InfoMetric label="Total Due" value={money(selectedStudent.totalDue)} />
+              <InfoMetric label="Last Payment" value={selectedStudent.latestPayment ? formatDate(selectedStudent.latestPayment.date) : "No payment"} />
+            </div>
+          </div>
+          {selectedStudent.latestPayment && (
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-blue-100 pt-3 text-sm text-gray-600">
+              <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-4 w-4 text-blue-600" /> Last paid: <strong className="text-gray-900">{formatDate(selectedStudent.latestPayment.date)}</strong></span>
+              <span>Amount: <strong className="text-emerald-700">{money(selectedStudent.latestPayment.amount)}</strong></span>
+              <span>For: <strong className="text-gray-900">{selectedStudent.latestPayment.month}, {selectedStudent.latestPayment.year}</strong></span>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-200 p-4 sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div><h2 className="text-base font-semibold text-gray-900">Student-wise Fee Dashboard</h2><p className="mt-1 text-xs text-gray-500">Active students · {selectedMonth} {selectedYear}</p></div>
+            <div><h2 className="text-base font-semibold text-gray-900">Student-wise Fee Dashboard</h2><p className="mt-1 text-xs text-gray-500">Active students · {selectedMonth} {selectedYear} · Search/select a student to see last payment details</p></div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Search student / roll / batch" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:w-64" />
               <select value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setStudentFilter(""); }} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"><option value="">All Batches</option>{batches.map((batch) => <option key={batch._id} value={batch._id}>{batch.name}</option>)}</select>
@@ -263,7 +293,7 @@ export default function FeesPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-[920px] w-full divide-y divide-gray-200">
+          <table className="min-w-[1100px] w-full divide-y divide-gray-200">
             <thead className="bg-gray-50"><tr>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Student</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Batch</th>
@@ -271,6 +301,8 @@ export default function FeesPage() {
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Paid</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-amber-700">Previous Due</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-blue-700">Current Due</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Last Payment</th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Last Amount</th>
               <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600">Status</th>
             </tr></thead>
             <tbody className="divide-y divide-gray-100 bg-white">
@@ -281,9 +313,11 @@ export default function FeesPage() {
                 <td className="px-4 py-3.5 text-right text-sm font-semibold text-emerald-700">{money(student.paid)}</td>
                 <td className="px-4 py-3.5 text-right text-sm font-semibold text-amber-700">{money(student.previousDue)}</td>
                 <td className="px-4 py-3.5 text-right text-sm font-semibold text-blue-700">{money(student.currentDue)}</td>
+                <td className="px-4 py-3.5 text-sm text-gray-600">{student.latestPayment ? <><div className="font-medium text-gray-900">{formatDate(student.latestPayment.date)}</div><div className="text-xs text-gray-500">{student.latestPayment.month}, {student.latestPayment.year}</div></> : <span className="text-gray-400">No payment</span>}</td>
+                <td className="px-4 py-3.5 text-right text-sm font-semibold text-emerald-700">{student.latestPayment ? money(student.latestPayment.amount) : "—"}</td>
                 <td className="px-4 py-3.5 text-center"><StatusBadge status={student.paymentStatus} /></td>
               </tr>)}
-              {filteredStudents.length === 0 && <tr><td colSpan="7" className="px-4 py-10 text-center text-sm text-gray-500">No students found for the selected filters.</td></tr>}
+              {filteredStudents.length === 0 && <tr><td colSpan="9" className="px-4 py-10 text-center text-sm text-gray-500">No students found for the selected filters.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -316,7 +350,7 @@ export default function FeesPage() {
                 <td className="px-4 py-3.5 text-sm text-gray-600">{payment.month}, {payment.year}</td>
                 <td className="px-4 py-3.5 text-right text-sm font-semibold text-emerald-700">{money(payment.amount)}</td>
                 <td className="px-4 py-3.5 text-sm capitalize text-gray-600">{payment.method}</td>
-                <td className="px-4 py-3.5 text-sm text-gray-600">{payment.date ? new Date(payment.date).toLocaleDateString("en-BD") : "—"}</td>
+                <td className="px-4 py-3.5 text-sm text-gray-600">{payment.date ? formatDate(payment.date) : "—"}</td>
                 <td className="px-4 py-3.5 text-center"><button onClick={() => openEditModal(payment)} className="mr-3 text-blue-600 hover:text-blue-800" title="Edit payment"><Edit className="inline h-4 w-4" /></button><button onClick={() => setDeleteId(payment._id)} className="text-red-600 hover:text-red-800" title="Delete payment"><Trash2 className="inline h-4 w-4" /></button></td>
               </tr>)}
               {filteredHistory.length === 0 && <tr><td colSpan="6" className="px-4 py-10 text-center text-sm text-gray-500">No payment history for the selected month.</td></tr>}
@@ -331,7 +365,7 @@ export default function FeesPage() {
           <div className="ui-modal-panel relative z-10 w-full max-w-lg rounded-xl bg-white p-6 text-left shadow-2xl">
             <div className="mb-5 flex items-start justify-between"><div><h2 id="payment-modal-title" className="text-lg font-semibold text-gray-900">{editMode ? "Edit Payment" : "Record Payment"}</h2><p className="mt-1 text-xs text-gray-500">Payment month is separate from the date it was received.</p></div><button onClick={() => setShowModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close">×</button></div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Student</label><select required value={formData.student} onChange={(e) => setFormData({ ...formData, student: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"><option value="">Select student</option>{students.map((student) => <option key={student._id} value={student._id}>{student.name} ({student.rollNumber})</option>)}</select>{selectedStudentSummary && <div className="mt-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">Monthly fee: <strong>{money(selectedStudentSummary.monthlyFee)}</strong> · Current due: <strong>{money(selectedStudentSummary.currentDue)}</strong> · Previous due: <strong>{money(selectedStudentSummary.previousDue)}</strong></div>}</div>
+              <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Student</label><select required value={formData.student} onChange={(e) => setFormData({ ...formData, student: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"><option value="">Select student</option>{students.map((student) => <option key={student._id} value={student._id}>{student.name} ({student.rollNumber})</option>)}</select>{selectedStudentSummary && <div className="mt-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">Monthly fee: <strong>{money(selectedStudentSummary.monthlyFee)}</strong> · Current due: <strong>{money(selectedStudentSummary.currentDue)}</strong> · Previous due: <strong>{money(selectedStudentSummary.previousDue)}</strong>{selectedStudentSummary.latestPayment && <> · Last paid: <strong>{formatDate(selectedStudentSummary.latestPayment.date)}</strong> ({money(selectedStudentSummary.latestPayment.amount)})</>}</div>}</div>
               <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm font-medium text-gray-700">Month</label><select value={formData.month} onChange={(e) => setFormData({ ...formData, month: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900">{MONTHS.map((month) => <option key={month}>{month}</option>)}</select></div><div><label className="mb-1.5 block text-sm font-medium text-gray-700">Year</label><input type="number" min="2000" max="2100" value={formData.year} onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })} className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900" /></div></div>
               <div><label className="mb-1.5 block text-sm font-medium text-gray-700">Amount</label><input required min="1" step="0.01" type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="e.g. 1000" className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900" /></div>
               <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm font-medium text-gray-700">Payment Method</label><select value={formData.method} onChange={(e) => setFormData({ ...formData, method: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm capitalize text-gray-900">{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method}</option>)}</select></div><div><label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label><select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900"><option value="paid">Paid</option><option value="due">Due / Not Collected</option></select></div></div>
@@ -354,6 +388,10 @@ function DueCard({ title, subtitle, value, icon: Icon, tone }) {
   const classes = tone === "amber" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-blue-200 bg-blue-50 text-blue-900";
   const iconClass = tone === "amber" ? "text-amber-600" : "text-blue-600";
   return <div className={`rounded-xl border p-5 ${classes}`}><div className="flex items-start justify-between"><div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs opacity-80">{subtitle}</p></div><Icon className={`h-5 w-5 ${iconClass}`} /></div><p className="mt-4 text-2xl font-bold">{money(value)}</p></div>;
+}
+
+function InfoMetric({ label, value }) {
+  return <div className="rounded-lg border border-blue-100 bg-white px-3 py-2.5"><p className="text-[11px] font-medium text-gray-500">{label}</p><p className="mt-1 text-sm font-bold text-gray-900">{value}</p></div>;
 }
 
 function StatusBadge({ status }) {

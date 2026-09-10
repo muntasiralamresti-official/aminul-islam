@@ -12,22 +12,27 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const year = parseInt(searchParams.get('year')) || new Date().getFullYear();
 
-    const students = await Student.find({ status: 'active' });
+    const students = await Student.find({ status: 'active' }).select('monthlyFee');
     const setting = await Setting.findOne();
-    const defaultFee = setting?.defaultFee || 1000;
+    const defaultFee = setting?.defaultFee ?? 1000;
 
-    let totalExpectedPerMonth = 0;
-    students.forEach(s => {
-      totalExpectedPerMonth += (s.monthlyFee || defaultFee);
-    });
+    // Every active student's own monthly fee contributes to the expected amount.
+    // The default fee is only a fallback for older students without a fee value.
+    const totalExpectedPerMonth = students.reduce(
+      (total, student) => total + (student.monthlyFee ?? defaultFee),
+      0
+    );
 
     const paymentsByMonth = await Payment.aggregate([
       { $match: { year: year } },
       { $group: { _id: '$month', collected: { $sum: '$amount' } } }
     ]);
 
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
     let yearlyCollected = 0;
     const currentMonthIndex = new Date().getMonth();
     const isCurrentYear = year === new Date().getFullYear();
@@ -35,15 +40,15 @@ export async function GET(request) {
     const monthlyData = months.map((month, index) => {
       const found = paymentsByMonth.find(p => p._id === month);
       const collected = found ? found.collected : 0;
-      
+
       yearlyCollected += collected;
 
       let expected = 0;
       if (!isCurrentYear || index <= currentMonthIndex) {
-         expected = totalExpectedPerMonth;
+        expected = totalExpectedPerMonth;
       }
-      
-      const due = expected > collected ? expected - collected : 0;
+
+      const due = Math.max(expected - collected, 0);
 
       return {
         month: month.substring(0, 3),
@@ -61,7 +66,7 @@ export async function GET(request) {
       yearlyExpected = totalExpectedPerMonth * 12;
     }
 
-    const yearlyDue = yearlyExpected > yearlyCollected ? yearlyExpected - yearlyCollected : 0;
+    const yearlyDue = Math.max(yearlyExpected - yearlyCollected, 0);
 
     return NextResponse.json({
       year,

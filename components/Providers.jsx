@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
 import OfflineBanner from './OfflineBanner';
+import GlobalDataLoader from './GlobalDataLoader';
 
 export default function Providers({ children }) {
   useEffect(() => {
@@ -18,6 +19,7 @@ export default function Providers({ children }) {
     <SessionProvider>
       <Toaster position="top-right" />
       <OfflineBanner />
+      <GlobalDataLoader />
       {children}
     </SessionProvider>
   );

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectMongo from '@/lib/db';
 import Payment from '@/models/Payment';
 import Student from '@/models/Student';
+import Batch from '@/models/Batch';
 import Setting from '@/models/Setting';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +43,6 @@ export async function GET(request) {
       ? await Payment.find({
           status: 'paid',
           student: { $in: studentIds },
-          year: { $lte: year },
         })
           .select('student month year amount date')
           .lean()
@@ -51,11 +51,10 @@ export async function GET(request) {
     const paymentTotals = new Map();
     for (const payment of payments) {
       const monthIndex = MONTHS.indexOf(payment.month);
-      if (monthIndex < 0 || !Number.isFinite(Number(payment.year))) continue;
+      const paymentYear = Number(payment.year);
+      if (monthIndex < 0 || !Number.isFinite(paymentYear)) continue;
 
-      const paymentPeriod = periodIndex(Number(payment.year), monthIndex);
-      if (paymentPeriod > selectedPeriod) continue;
-
+      const paymentPeriod = periodIndex(paymentYear, monthIndex);
       const studentId = String(payment.student);
       const entry = paymentTotals.get(studentId) || {
         previousPaid: 0,
@@ -64,9 +63,13 @@ export async function GET(request) {
       };
       const amount = Number(payment.amount) || 0;
 
-      if (paymentPeriod === selectedPeriod) entry.currentPaid += amount;
-      else entry.previousPaid += amount;
+      // Only payments up to the selected period contribute to the fee balance.
+      if (paymentPeriod <= selectedPeriod) {
+        if (paymentPeriod === selectedPeriod) entry.currentPaid += amount;
+        else entry.previousPaid += amount;
+      }
 
+      // Latest payment is independent of the selected month/year.
       const paymentDate = payment.date ? new Date(payment.date) : null;
       const latestDate = entry.latestPayment?.date ? new Date(entry.latestPayment.date) : null;
       if (paymentDate && (!latestDate || paymentDate > latestDate)) {
@@ -74,7 +77,7 @@ export async function GET(request) {
           date: payment.date,
           amount,
           month: payment.month,
-          year: Number(payment.year),
+          year: paymentYear,
         };
       }
 

@@ -38,16 +38,13 @@ export async function GET(request) {
     const defaultFee = Number(setting?.defaultFee ?? 1000) || 1000;
     const studentIds = students.map((student) => student._id);
 
-    // Keep the query simple and compatible with the MongoDB versions commonly
-    // used by this project. Only the fields needed for the fee calculation are
-    // loaded, and only payments belonging to active students are considered.
     const payments = studentIds.length
       ? await Payment.find({
           status: 'paid',
           student: { $in: studentIds },
           year: { $lte: year },
         })
-          .select('student month year amount')
+          .select('student month year amount date')
           .lean()
       : [];
 
@@ -60,11 +57,26 @@ export async function GET(request) {
       if (paymentPeriod > selectedPeriod) continue;
 
       const studentId = String(payment.student);
-      const entry = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
+      const entry = paymentTotals.get(studentId) || {
+        previousPaid: 0,
+        currentPaid: 0,
+        latestPayment: null,
+      };
       const amount = Number(payment.amount) || 0;
 
       if (paymentPeriod === selectedPeriod) entry.currentPaid += amount;
       else entry.previousPaid += amount;
+
+      const paymentDate = payment.date ? new Date(payment.date) : null;
+      const latestDate = entry.latestPayment?.date ? new Date(entry.latestPayment.date) : null;
+      if (paymentDate && (!latestDate || paymentDate > latestDate)) {
+        entry.latestPayment = {
+          date: payment.date,
+          amount,
+          month: payment.month,
+          year: Number(payment.year),
+        };
+      }
 
       paymentTotals.set(studentId, entry);
     }
@@ -84,7 +96,11 @@ export async function GET(request) {
       const previousExpected = isAdmittedBySelectedMonth && admissionPeriod < selectedPeriod
         ? monthlyFee * (selectedPeriod - admissionPeriod)
         : 0;
-      const paid = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
+      const paid = paymentTotals.get(studentId) || {
+        previousPaid: 0,
+        currentPaid: 0,
+        latestPayment: null,
+      };
       const previousDue = Math.max(previousExpected - paid.previousPaid, 0);
       const currentDue = Math.max(currentExpected - paid.currentPaid, 0);
 
@@ -104,6 +120,7 @@ export async function GET(request) {
         previousDue,
         totalDue: previousDue + currentDue,
         paymentStatus,
+        latestPayment: paid.latestPayment,
       };
     });
 

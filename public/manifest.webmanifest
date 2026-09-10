@@ -1,10 +1,26 @@
 {
+  "id": "/dashboard",
   "name": "Aminul Islam Coaching Center",
   "short_name": "Aminul Islam",
   "description": "Coaching center management system",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f3f4f6",
   "theme_color": "#2563eb",
-  "orientation": "portrait-primary"
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

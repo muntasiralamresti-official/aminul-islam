@@ -8,14 +8,16 @@ export async function GET(request) {
     await connectMongo();
     const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batch');
-    
+
     let query = {};
     if (batchId) query.batch = batchId;
 
+    // Sort by MongoDB's built-in _id index to avoid the in-memory
+    // sort limit that can occur when sorting by an unindexed createdAt field.
     const students = await Student.find(query)
       .populate('batch', 'name subject')
-      .sort({ createdAt: -1 });
-      
+      .sort({ _id: -1 });
+
     return NextResponse.json(students);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -26,7 +28,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     await connectMongo();
-    
+
     // Check roll number uniqueness
     const existing = await Student.findOne({ rollNumber: body.rollNumber });
     if (existing) {

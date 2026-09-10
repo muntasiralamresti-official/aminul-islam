@@ -3,12 +3,15 @@ import connectMongo from '@/lib/db';
 import Student from '@/models/Student';
 import Batch from '@/models/Batch';
 
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export async function GET(request) {
   try {
     await connectMongo();
     const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batch');
-    const search = searchParams.get('search')?.trim() || '';
+    const rawSearch = searchParams.get('search')?.trim() || '';
+    const search = rawSearch ? escapeRegex(rawSearch) : '';
     const hasPagination = searchParams.has('page') || searchParams.has('limit') || Boolean(search);
     const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
     const limit = Math.min(50, Math.max(1, Number.parseInt(searchParams.get('limit') || '10', 10) || 10));

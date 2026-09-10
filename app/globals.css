@@ -17,3 +17,56 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Shared loader for dashboard pages that use a simple loading placeholder. */
+main:has(> .p-4) > .p-4 {
+  min-height: calc(100vh - 150px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 2rem;
+  color: transparent;
+  font-size: 0;
+  text-align: center;
+}
+
+main:has(> .p-4) > .p-4::before {
+  content: "";
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 9999px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-right-color: #60a5fa;
+  animation: dashboard-loader-spin 0.8s linear infinite;
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.12);
+}
+
+main:has(> .p-4) > .p-4::after {
+  content: "Loading...";
+  margin-top: 1rem;
+  color: #4b5563;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  animation: dashboard-loader-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes dashboard-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dashboard-loader-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}

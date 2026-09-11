@@ -28,7 +28,10 @@ export async function GET(request) {
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
     const [students, attendances] = await Promise.all([
-      Student.find({ batch: batchId, status: 'active' })
+      Student.find({
+        batch: batchId,
+        status: { $ne: 'inactive' },
+      })
         .select('name rollNumber photo')
         .sort({ rollNumber: 1, _id: 1 })
         .lean(),

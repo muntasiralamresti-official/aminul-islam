@@ -69,8 +69,11 @@ main:has(> .p-4) > .p-4::after {
   animation: dashboard-loader-pulse 1.4s ease-in-out infinite;
 }
 
-/* Keep page transitions lightweight so navigation never feels blocked. */
-.page-transition { animation: page-enter 180ms ease-out both; }
+/* Subtle route-entry motion: opacity only, so fixed modals remain viewport-centered. */
+.page-transition {
+  animation: page-enter 160ms ease-out both;
+}
+
 .ui-modal { animation: modal-backdrop-in 160ms ease-out both; }
 .ui-modal-panel { animation: modal-panel-in 190ms cubic-bezier(.2,.8,.2,1) both; }
 
@@ -85,7 +88,10 @@ table { min-width: 640px; }
 
 @keyframes dashboard-loader-spin { to { transform: rotate(360deg); } }
 @keyframes dashboard-loader-pulse { 0%,100% { opacity:.55; } 50% { opacity:1; } }
-@keyframes page-enter { from { opacity:0; } to { opacity:1; } }
+@keyframes page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 @keyframes modal-backdrop-in { from { opacity:0; } to { opacity:1; } }
 @keyframes modal-panel-in { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
 @media (prefers-reduced-motion: reduce) {

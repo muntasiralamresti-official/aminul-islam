@@ -18,19 +18,27 @@ export async function GET(request) {
     const date = new Date(dateParam);
     date.setHours(0, 0, 0, 0);
 
-    let attendance = await Attendance.findOne({ batch: batchId, date: date }).populate('records.student', 'name rollNumber');
+    const attendance = await Attendance.findOne({ batch: batchId, date })
+      .populate('records.student', 'name rollNumber');
 
     if (!attendance) {
-      // If no attendance record exists for this date, fetch all students for this batch to populate a new one
-      const students = await Student.find({ batch: batchId, status: 'active' });
+      // Include legacy students where status is missing, while excluding explicitly inactive students.
+      const students = await Student.find({
+        batch: batchId,
+        status: { $ne: 'inactive' },
+      })
+        .select('name rollNumber')
+        .sort({ _id: 1 })
+        .lean();
+
       return NextResponse.json({
         batch: batchId,
-        date: date,
+        date,
         isNew: true,
-        records: students.map(s => ({
-          student: { _id: s._id, name: s.name, rollNumber: s.rollNumber },
-          status: 'present' // default
-        }))
+        records: students.map((student) => ({
+          student,
+          status: 'present',
+        })),
       });
     }
 

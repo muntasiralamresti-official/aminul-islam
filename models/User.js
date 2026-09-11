@@ -16,11 +16,6 @@ const UserSchema = new mongoose.Schema(
       required: [true, 'Please provide a password'],
       select: false, // Don't return password by default
     },
-    role: {
-      type: String,
-      enum: ['admin', 'staff'],
-      default: 'staff',
-    },
     status: {
       type: String,
       enum: ['active', 'inactive'],

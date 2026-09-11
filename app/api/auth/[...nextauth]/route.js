@@ -22,7 +22,9 @@ async function ensureDefaultAdmin() {
   const adminEmail = (process.env.ADMIN_EMAIL || "aminulislam@gmail.com")
     .trim()
     .toLowerCase();
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminPassword =
+    process.env.ADMIN_PASSWORD ||
+    (process.env.NODE_ENV !== "production" ? "aminul-islam86" : null);
 
   if (!adminPassword) {
     throw new Error("ADMIN_PASSWORD must be configured to create the default admin");

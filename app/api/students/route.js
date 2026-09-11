@@ -4,6 +4,7 @@ import Student from '@/models/Student';
 import Batch from '@/models/Batch';
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const studentListFields = 'name rollNumber phone guardianPhone batch status photo createdAt';
 
 export async function GET(request) {
   try {
@@ -43,17 +44,21 @@ export async function GET(request) {
 
     if (!hasPagination || all) {
       const students = await Student.find(query)
+        .select(studentListFields)
         .populate('batch', 'name subject')
-        .sort({ _id: -1 });
+        .sort({ _id: -1 })
+        .lean();
       return NextResponse.json(students);
     }
 
     const [students, total] = await Promise.all([
       Student.find(query)
+        .select(studentListFields)
         .populate('batch', 'name subject')
         .sort({ _id: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Student.countDocuments(query),
     ]);
 
@@ -74,7 +79,7 @@ export async function POST(request) {
     const body = await request.json();
     await connectMongo();
 
-    const existing = await Student.findOne({ rollNumber: body.rollNumber });
+    const existing = await Student.findOne({ rollNumber: body.rollNumber }).select('_id').lean();
     if (existing) {
       return NextResponse.json({ error: 'Roll number already exists' }, { status: 400 });
     }

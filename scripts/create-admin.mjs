@@ -16,13 +16,12 @@ const users = connection.connection.collection("users");
 const passwordHash = await bcrypt.hash(password, 10);
 
 await users.updateOne(
-  { role: "admin" },
+  { email },
   {
     $set: {
       name: "System Admin",
       email,
       password: passwordHash,
-      role: "admin",
       status: "active",
       updatedAt: new Date(),
     },
@@ -31,5 +30,5 @@ await users.updateOne(
   { upsert: true },
 );
 
-console.log(`Admin account ready: ${email}`);
+console.log(`Account ready: ${email}`);
 await mongoose.disconnect();

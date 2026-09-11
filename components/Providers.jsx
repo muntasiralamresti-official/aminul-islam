@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
 import OfflineBanner from './OfflineBanner';
-import GlobalDataLoader from './GlobalDataLoader';
 import InstallAppBanner from './InstallAppBanner';
 import KeyboardShortcuts from './KeyboardShortcuts';
 
@@ -21,7 +20,6 @@ export default function Providers({ children }) {
     <SessionProvider>
       <Toaster position="top-right" toastOptions={{ duration: 3200 }} />
       <OfflineBanner />
-      <GlobalDataLoader />
       <InstallAppBanner />
       <KeyboardShortcuts />
       {children}

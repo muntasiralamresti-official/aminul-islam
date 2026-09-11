@@ -57,7 +57,7 @@ export async function GET() {
       ]),
       Batch.countDocuments(),
       Payment.aggregate([
-        { $match: { year: currentYear, status: 'paid' } },
+        { $match: { status: 'paid', $or: [{ year: currentYear }, { date: { $gte: todayStart, $lte: todayEnd } }] } },
         {
           $facet: {
             today: [
@@ -65,10 +65,11 @@ export async function GET() {
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ],
             currentMonth: [
-              { $match: { month: currentMonth } },
+              { $match: { year: currentYear, month: currentMonth } },
               { $group: { _id: null, total: { $sum: '$amount' } } },
             ],
             trend: [
+              { $match: { year: currentYear } },
               { $group: { _id: '$month', total: { $sum: '$amount' } } },
             ],
           },

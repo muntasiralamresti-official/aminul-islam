@@ -33,7 +33,11 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     const cachedName = sessionStorage.getItem("aminul-islam-center-name");
-    if (cachedName) setCenterName(cachedName);
+    if (cachedName) {
+      setCenterName(cachedName);
+      return;
+    }
+
     fetch("/api/settings", { cache: "no-store" })
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {

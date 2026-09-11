@@ -24,30 +24,85 @@ export async function GET() {
     const currentYear = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', year: 'numeric' }).format(now));
     const { start: todayStart, end: todayEnd } = getDhakaDayBounds();
 
-    const [setting, totalStudents, activeStudents, totalBatches, todayCollectionResult, monthlyCollectionResult, feeSummary, attendanceSummary, trendData, recentPayments, recentStudents, recentAttendance] = await Promise.all([
-      Setting.findOne().lean(),
-      Student.countDocuments(),
-      Student.countDocuments({ status: 'active' }),
+    // Keep the dashboard fast by combining related metric queries. This reduces
+    // the number of MongoDB round-trips while keeping recent-activity queries small.
+    const [setting, studentMetrics, batchCount, paymentMetrics, attendanceSummary, recentPayments, recentStudents, recentAttendance] = await Promise.all([
+      Setting.findOne().select('defaultFee').lean(),
+      Student.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalStudents: { $sum: 1 },
+            activeStudents: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+            feeWithValue: {
+              $sum: {
+                $cond: [
+                  { $and: [{ $eq: ['$status', 'active'] }, { $ne: ['$monthlyFee', null] }] },
+                  { $ifNull: ['$monthlyFee', 0] },
+                  0,
+                ],
+              },
+            },
+            studentsWithValue: {
+              $sum: {
+                $cond: [
+                  { $and: [{ $eq: ['$status', 'active'] }, { $ne: ['$monthlyFee', null] }] },
+                  1,
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]),
       Batch.countDocuments(),
-      Payment.aggregate([{ $match: { date: { $gte: todayStart, $lte: todayEnd }, status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Payment.aggregate([{ $match: { month: currentMonth, year: currentYear, status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Student.aggregate([{ $match: { status: 'active' } }, { $group: { _id: null, feeWithValue: { $sum: { $ifNull: ['$monthlyFee', 0] } }, studentsWithValue: { $sum: { $cond: [{ $ne: ['$monthlyFee', null] }, 1, 0] } } } }]),
-      Attendance.aggregate([{ $match: { date: { $gte: todayStart, $lte: todayEnd } } }, { $unwind: '$records' }, { $group: { _id: null, marked: { $sum: 1 }, present: { $sum: { $cond: [{ $in: ['$records.status', ['present', 'late']] }, 1, 0] } }, absent: { $sum: { $cond: [{ $eq: ['$records.status', 'absent'] }, 1, 0] } } } }]),
-      Payment.aggregate([{ $match: { year: currentYear, status: 'paid' } }, { $group: { _id: '$month', total: { $sum: '$amount' } } }]),
-      Payment.find({ status: 'paid' }).sort({ date: -1 }).limit(5).populate('student', 'name').lean(),
-      Student.find().sort({ createdAt: -1 }).limit(5).populate('batch', 'name').lean(),
-      Attendance.find().sort({ createdAt: -1 }).limit(5).populate('batch', 'name').lean(),
+      Payment.aggregate([
+        { $match: { year: currentYear, status: 'paid' } },
+        {
+          $facet: {
+            today: [
+              { $match: { date: { $gte: todayStart, $lte: todayEnd } } },
+              { $group: { _id: null, total: { $sum: '$amount' } } },
+            ],
+            currentMonth: [
+              { $match: { month: currentMonth } },
+              { $group: { _id: null, total: { $sum: '$amount' } } },
+            ],
+            trend: [
+              { $group: { _id: '$month', total: { $sum: '$amount' } } },
+            ],
+          },
+        },
+      ]),
+      Attendance.aggregate([
+        { $match: { date: { $gte: todayStart, $lte: todayEnd } } },
+        { $unwind: '$records' },
+        {
+          $group: {
+            _id: null,
+            marked: { $sum: 1 },
+            present: { $sum: { $cond: [{ $in: ['$records.status', ['present', 'late']] }, 1, 0] } },
+            absent: { $sum: { $cond: [{ $eq: ['$records.status', 'absent'] }, 1, 0] } },
+          },
+        },
+      ]),
+      Payment.find({ status: 'paid' }).select('student amount date createdAt').sort({ date: -1 }).limit(5).populate('student', 'name').lean(),
+      Student.find().select('name batch createdAt').sort({ createdAt: -1 }).limit(5).populate('batch', 'name').lean(),
+      Attendance.find().select('batch createdAt').sort({ createdAt: -1 }).limit(5).populate('batch', 'name').lean(),
     ]);
 
     const defaultFee = setting?.defaultFee ?? 1000;
-    const collectionThisMonth = monthlyCollectionResult[0]?.total || 0;
-    const todayCollection = todayCollectionResult[0]?.total || 0;
-    const summary = feeSummary[0];
-    const expectedCollection = summary ? summary.feeWithValue + Math.max(activeStudents - summary.studentsWithValue, 0) * defaultFee : activeStudents * defaultFee;
+    const metrics = studentMetrics[0] || { totalStudents: 0, activeStudents: 0, feeWithValue: 0, studentsWithValue: 0 };
+    const payments = paymentMetrics[0] || { today: [], currentMonth: [], trend: [] };
+    const totalStudents = metrics.totalStudents || 0;
+    const activeStudents = metrics.activeStudents || 0;
+    const collectionThisMonth = payments.currentMonth[0]?.total || 0;
+    const todayCollection = payments.today[0]?.total || 0;
+    const expectedCollection = metrics.feeWithValue + Math.max(activeStudents - metrics.studentsWithValue, 0) * defaultFee;
     const totalDue = Math.max(expectedCollection - collectionThisMonth, 0);
     const attendance = attendanceSummary[0] || { marked: 0, present: 0, absent: 0 };
     const formattedTrend = monthsOrder.map((month) => {
-      const found = trendData.find((item) => item._id === month);
+      const found = payments.trend.find((item) => item._id === month);
       return { name: month.substring(0, 3), total: found ? found.total : 0 };
     });
 
@@ -57,7 +112,7 @@ export async function GET() {
       ...recentAttendance.map((record) => ({ id: `attendance-${record._id}`, type: 'attendance', title: 'Attendance marked', detail: record.batch?.name || 'Batch attendance', date: record.createdAt })),
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
 
-    return NextResponse.json({ totalStudents, activeStudents, totalBatches, todayCollection, collectionThisMonth, totalDue, currentMonth, todayAttendance: attendance.marked, presentToday: attendance.present, absentToday: attendance.absent, monthlyFinancial: { expected: expectedCollection, collected: collectionThisMonth, due: totalDue }, trend: formattedTrend, recentActivity });
+    return NextResponse.json({ totalStudents, activeStudents, totalBatches: batchCount, todayCollection, collectionThisMonth, totalDue, currentMonth, todayAttendance: attendance.marked, presentToday: attendance.present, absentToday: attendance.absent, monthlyFinancial: { expected: expectedCollection, collected: collectionThisMonth, due: totalDue }, trend: formattedTrend, recentActivity });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

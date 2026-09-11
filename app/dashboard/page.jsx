@@ -7,6 +7,9 @@ import { useSession } from 'next-auth/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 
+const DASHBOARD_CACHE_KEY = 'aminul-islam-dashboard-cache';
+const DASHBOARD_CACHE_TTL = 15000;
+
 function DashboardLoading() {
   return (
     <div className="animate-pulse" aria-label="Loading dashboard" role="status">
@@ -74,24 +77,39 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const fetchDashboard = async () => {
-    setLoading(true);
+  const fetchDashboard = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     setError(false);
     try {
       const res = await fetch('/api/dashboard/stats', { cache: 'no-store' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load dashboard data');
       setStats(data);
+      try {
+        sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }));
+      } catch {}
     } catch (err) {
-      setError(true);
-      toast.error('Failed to load dashboard data');
+      if (!silent) {
+        setError(true);
+        toast.error('Failed to load dashboard data');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboard();
+    let usedCache = false;
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(DASHBOARD_CACHE_KEY) || 'null');
+      if (cached?.data && Date.now() - cached.savedAt < DASHBOARD_CACHE_TTL) {
+        setStats(cached.data);
+        setLoading(false);
+        usedCache = true;
+      }
+    } catch {}
+
+    fetchDashboard({ silent: usedCache });
   }, []);
 
   if (loading) return <DashboardLoading />;

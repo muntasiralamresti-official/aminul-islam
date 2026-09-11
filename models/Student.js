@@ -49,9 +49,6 @@ const StudentSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    photo: {
-      type: String, // URL to photo if implemented
-    },
     status: {
       type: String,
       enum: ['active', 'inactive'],
@@ -62,5 +59,9 @@ const StudentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+StudentSchema.index({ status: 1 });
+StudentSchema.index({ status: 1, batch: 1 });
+StudentSchema.index({ createdAt: -1 });
 
 export default mongoose.models.Student || mongoose.model('Student', StudentSchema);

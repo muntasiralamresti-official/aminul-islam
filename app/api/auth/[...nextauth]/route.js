@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === "production" && !nextAuthSecret) {
   throw new Error("NEXTAUTH_SECRET must be configured in production");
 }
 
-async function ensureDefaultAdmin() {
+async function ensureDefaultAccount() {
   const adminEmail = (process.env.ADMIN_EMAIL || "aminulislam@gmail.com")
     .trim()
     .toLowerCase();
@@ -27,32 +27,22 @@ async function ensureDefaultAdmin() {
     (process.env.NODE_ENV !== "production" ? "aminul-islam86" : null);
 
   if (!adminPassword) {
-    throw new Error("ADMIN_PASSWORD must be configured to create the default admin");
+    throw new Error("ADMIN_PASSWORD must be configured to create the default account");
   }
 
-  let adminUser = await User.findOne({ email: adminEmail }).select("+password");
+  let account = await User.findOne({ email: adminEmail }).select("+password");
 
-  if (!adminUser) {
+  if (!account) {
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    adminUser = await User.create({
+    account = await User.create({
       name: "System Admin",
       email: adminEmail,
       password: hashedPassword,
-      role: "admin",
       status: "active",
     });
   }
 
-  if (adminUser.role !== "admin" || adminUser.status !== "active") {
-    adminUser.role = "admin";
-    adminUser.status = "active";
-    if (!adminUser.password) {
-      adminUser.password = await bcrypt.hash(adminPassword, 10);
-    }
-    await adminUser.save();
-  }
-
-  return adminUser;
+  return account;
 }
 
 export const authOptions = {
@@ -85,7 +75,7 @@ export const authOptions = {
               .trim()
               .toLowerCase()
         ) {
-          user = await ensureDefaultAdmin();
+          user = await ensureDefaultAccount();
         }
 
         if (!user) {
@@ -109,7 +99,6 @@ export const authOptions = {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          role: user.role,
         };
       },
     }),
@@ -117,14 +106,12 @@ export const authOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
         token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.role = token.role;
         session.user.id = token.id;
       }
       return session;

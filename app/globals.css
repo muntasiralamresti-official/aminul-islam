@@ -12,32 +12,23 @@
   --font-mono: var(--font-geist-mono);
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
-button, a, input, select, textarea {
-  -webkit-tap-highlight-color: transparent;
-}
-
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button, a {
   transition-property: color, background-color, border-color, box-shadow, opacity, transform;
   transition-duration: 160ms;
   transition-timing-function: ease-out;
 }
-
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
@@ -56,7 +47,6 @@ main:has(> .p-4) > .p-4 {
   font-size: 0;
   text-align: center;
 }
-
 main:has(> .p-4) > .p-4::before {
   content: "";
   width: 3.25rem;
@@ -68,7 +58,6 @@ main:has(> .p-4) > .p-4::before {
   animation: dashboard-loader-spin 0.8s linear infinite;
   box-shadow: 0 4px 18px rgba(37, 99, 235, 0.12);
 }
-
 main:has(> .p-4) > .p-4::after {
   content: "Loading...";
   margin-top: 1rem;
@@ -80,63 +69,26 @@ main:has(> .p-4) > .p-4::after {
   animation: dashboard-loader-pulse 1.4s ease-in-out infinite;
 }
 
-/* Page and modal motion */
-.page-transition {
-  /* Keep page motion on opacity only. A transform here creates a containing
-     block for position:fixed children and causes dashboard modals to center
-     relative to the page instead of the viewport. */
-  animation: page-enter 220ms ease-out both;
-}
+/* Keep page transitions lightweight so navigation never feels blocked. */
+.page-transition { animation: page-enter 180ms ease-out both; }
+.ui-modal { animation: modal-backdrop-in 160ms ease-out both; }
+.ui-modal-panel { animation: modal-panel-in 190ms cubic-bezier(.2,.8,.2,1) both; }
 
-.ui-modal {
-  animation: modal-backdrop-in 160ms ease-out both;
-}
-
-.ui-modal-panel {
-  animation: modal-panel-in 190ms cubic-bezier(.2,.8,.2,1) both;
-}
-
-/* Tables remain usable on narrow screens while preserving all columns. */
-table {
-  min-width: 640px;
-}
-
+/* Tables stay readable and scroll naturally on phones. */
+table { min-width: 640px; }
+.overflow-x-auto { -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
 @media (max-width: 640px) {
-  table th, table td {
-    padding-top: 0.7rem;
-    padding-bottom: 0.7rem;
-  }
+  table th, table td { padding-top: 0.7rem; padding-bottom: 0.7rem; }
+  button, a { touch-action: manipulation; }
+  input, select, textarea { font-size: 16px; }
 }
 
-@keyframes dashboard-loader-spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes dashboard-loader-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-
-@keyframes page-enter {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes modal-backdrop-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes modal-panel-in {
-  from { opacity: 0; transform: translateY(10px) scale(.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
+@keyframes dashboard-loader-spin { to { transform: rotate(360deg); } }
+@keyframes dashboard-loader-pulse { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+@keyframes page-enter { from { opacity:0; } to { opacity:1; } }
+@keyframes modal-backdrop-in { from { opacity:0; } to { opacity:1; } }
+@keyframes modal-panel-in { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 }

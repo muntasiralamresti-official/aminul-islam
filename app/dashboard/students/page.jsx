@@ -37,11 +37,11 @@ function StudentsContent() {
     setCurrentPage(nextPage);
   }, [searchParams]);
 
-  // Do not hit the API on every keystroke. Searching waits until the user pauses.
+  // Wait until typing pauses before searching; pagination is not affected.
   useEffect(() => {
+    const value = searchInput.trim();
+    if (value === searchQuery) return;
     const timer = setTimeout(() => {
-      const value = searchInput.trim();
-      if (value === searchQuery && currentPage === 1) return;
       setSearchQuery(value);
       setCurrentPage(1);
       const params = new URLSearchParams();
@@ -50,7 +50,7 @@ function StudentsContent() {
       router.replace(query ? `/dashboard/students?${query}` : "/dashboard/students");
     }, 350);
     return () => clearTimeout(timer);
-  }, [searchInput, searchQuery, currentPage, router]);
+  }, [searchInput, searchQuery, router]);
 
   const fetchStudents = useCallback(async ({ force = false } = {}) => {
     const cacheKey = getCacheKey(currentPage, searchQuery);

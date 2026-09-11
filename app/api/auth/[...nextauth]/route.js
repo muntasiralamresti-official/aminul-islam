@@ -22,7 +22,11 @@ async function ensureDefaultAdmin() {
   const adminEmail = (process.env.ADMIN_EMAIL || "aminulislam@gmail.com")
     .trim()
     .toLowerCase();
-  const adminPassword = process.env.ADMIN_PASSWORD || "aminul-islam86";
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    throw new Error("ADMIN_PASSWORD must be configured to create the default admin");
+  }
 
   let adminUser = await User.findOne({ email: adminEmail }).select("+password");
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Plus, Edit, Trash2, Eye, RefreshCw, WifiOff, Loader2 } from "lucide-react";
@@ -26,6 +26,7 @@ function StudentsContent() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteId, setDeleteId] = useState(null);
+  const hasDataRef = useRef(false);
   const pageSize = 10;
 
   useEffect(() => {
@@ -40,6 +41,7 @@ function StudentsContent() {
   useEffect(() => {
     const timer = setTimeout(() => {
       const value = searchInput.trim();
+      if (value === searchQuery && currentPage === 1) return;
       setSearchQuery(value);
       setCurrentPage(1);
       const params = new URLSearchParams();
@@ -48,10 +50,12 @@ function StudentsContent() {
       router.replace(query ? `/dashboard/students?${query}` : "/dashboard/students");
     }, 350);
     return () => clearTimeout(timer);
-  }, [searchInput, router]);
+  }, [searchInput, searchQuery, currentPage, router]);
 
   const fetchStudents = useCallback(async ({ force = false } = {}) => {
     const cacheKey = getCacheKey(currentPage, searchQuery);
+    let loadedFromCache = false;
+
     if (!force) {
       try {
         const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
@@ -61,27 +65,30 @@ function StudentsContent() {
           setTotalPages(cached.data.totalPages || 1);
           setLoading(false);
           setRefreshing(true);
+          hasDataRef.current = true;
+          loadedFromCache = true;
         }
       } catch {}
     }
 
-    if (students.length === 0) setLoading(true);
-    else setRefreshing(true);
+    if (!hasDataRef.current) setLoading(true);
+    else if (!loadedFromCache) setRefreshing(true);
     setError("");
 
     try {
       const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) });
       if (searchQuery) params.set("search", searchQuery);
-      const res = await fetch(`/api/students?${params.toString()}`);
+      const res = await fetch(`/api/students?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load students");
       setStudents(data.students || []);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);
+      hasDataRef.current = true;
       try { sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data })); } catch {}
     } catch (fetchError) {
       const message = fetchError.message || "Failed to load students";
-      if (students.length === 0) {
+      if (!hasDataRef.current) {
         setError(message);
         toast.error(message);
       }
@@ -89,7 +96,7 @@ function StudentsContent() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentPage, searchQuery, students.length]);
+  }, [currentPage, searchQuery]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
@@ -115,6 +122,7 @@ function StudentsContent() {
       const res = await fetch(`/api/students/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete student");
       toast.success("Student deleted");
+      hasDataRef.current = false;
       try {
         Object.keys(sessionStorage).filter((key) => key.startsWith("aminul-islam-students-")).forEach((key) => sessionStorage.removeItem(key));
       } catch {}

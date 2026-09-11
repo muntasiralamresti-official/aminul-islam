@@ -30,7 +30,8 @@ const AttendanceSchema = new mongoose.Schema(
   }
 );
 
-// Ensure only one attendance record per batch per day
 AttendanceSchema.index({ batch: 1, date: 1 }, { unique: true });
+AttendanceSchema.index({ createdAt: -1 });
+AttendanceSchema.index({ date: -1 });
 
 export default mongoose.models.Attendance || mongoose.model('Attendance', AttendanceSchema);

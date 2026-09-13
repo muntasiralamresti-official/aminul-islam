@@ -66,13 +66,18 @@ table { min-width:640px; }
   .ui-bottom-sheet-shell { align-items:flex-end!important; padding:0!important; }
   .ui-bottom-sheet { width:100%; max-width:none!important; max-height:min(88dvh,760px); overflow-y:auto; border-radius:1.4rem 1.4rem 0 0!important; padding-bottom:env(safe-area-inset-bottom); }
 
-  /* Fees: turn the existing payment dialog into a native-style bottom sheet without changing its logic. */
+  /* Fees: native-style payment sheet and contextual floating action. */
   .fixed.inset-0[role="dialog"]:has(form) { align-items:flex-end!important; padding:0!important; overflow:hidden!important; }
   .fixed.inset-0[role="dialog"]:has(form) > .relative { width:100%!important; max-width:none!important; max-height:92dvh!important; overflow-y:auto!important; margin:0!important; border-radius:1.4rem 1.4rem 0 0!important; padding:1.15rem!important; padding-bottom:max(1.15rem,env(safe-area-inset-bottom))!important; box-shadow:0 -12px 40px rgba(15,23,42,.18); animation:bottom-sheet-in 260ms cubic-bezier(.22,.9,.28,1) both; }
   .fixed.inset-0[role="dialog"]:has(form) > .relative::before { content:""; display:block; width:2.75rem; height:.3rem; margin:-.35rem auto 1rem; border-radius:9999px; background:#cbd5e1; }
   .fixed.inset-0[role="dialog"]:has(form) form > div:last-child { position:sticky; bottom:0; margin:1rem -1.15rem -1.15rem; padding:1rem 1.15rem max(1rem,env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); border-top:1px solid #e5e7eb; backdrop-filter:blur(12px); }
   .fixed.inset-0[role="dialog"]:has(form) form > div:last-child button { min-height:48px; }
   .fixed.inset-0[role="dialog"]:has(form) .absolute.z-50 { position:fixed!important; left:1rem; right:1rem; bottom:calc(5.5rem + env(safe-area-inset-bottom)); top:auto!important; max-height:45dvh; }
+
+  /* Fees: keep the primary action reachable like a native app FAB. Desktop layout is untouched. */
+  main > div.space-y-6.pb-8 > div:first-child > div:last-child > button { position:fixed; right:1rem; bottom:calc(5.75rem + env(safe-area-inset-bottom)); z-index:40; min-height:52px; border-radius:9999px; padding:0 1.1rem; box-shadow:0 10px 28px rgba(37,99,235,.28); }
+  main > div.space-y-6.pb-8 > div:first-child > div:last-child > button .mr-2 { margin-right:.5rem; }
+  main > div.space-y-6.pb-8 { padding-bottom:7rem; }
 }
 @keyframes dashboard-loader-spin { to { transform:rotate(360deg); } }
 @keyframes dashboard-loader-pulse { 0%,100%{opacity:.55} 50%{opacity:1} }

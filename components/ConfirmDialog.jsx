@@ -7,10 +7,23 @@ const haptic = (duration = 8) => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(duration);
 };
 
-export default function ConfirmDialog({ open, title = 'Are you sure?', message = 'This action cannot be undone.', confirmLabel = 'Confirm', cancelLabel = 'Cancel', onConfirm, onCancel, danger = true }) {
+export default function ConfirmDialog({
+  open,
+  title = 'Are you sure?',
+  message = 'This action cannot be undone.',
+  confirmLabel,
+  cancelLabel,
+  confirmText,
+  cancelText,
+  onConfirm,
+  onCancel,
+  danger = true,
+}) {
   const startY = useRef(0);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const resolvedConfirmLabel = confirmLabel ?? confirmText ?? 'Confirm';
+  const resolvedCancelLabel = cancelLabel ?? cancelText ?? 'Cancel';
 
   useEffect(() => {
     if (!open) return;
@@ -74,8 +87,8 @@ export default function ConfirmDialog({ open, title = 'Are you sure?', message =
           <p className="mt-2 text-sm leading-6 text-gray-500">{message}</p>
         </div>
         <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/80 p-4 sm:flex-row sm:justify-end">
-          <button type="button" onClick={() => { haptic(); onCancel?.(); }} className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">{cancelLabel}</button>
-          <button type="button" onClick={() => { haptic(12); onConfirm?.(); }} className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>{confirmLabel}</button>
+          <button type="button" onClick={() => { haptic(); onCancel?.(); }} className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">{resolvedCancelLabel}</button>
+          <button type="button" onClick={() => { haptic(12); onConfirm?.(); }} className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>{resolvedConfirmLabel}</button>
         </div>
       </div>
     </div>

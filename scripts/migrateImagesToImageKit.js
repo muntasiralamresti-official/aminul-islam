@@ -14,7 +14,7 @@ const Student = mongoose.models.Student || mongoose.model('Student', StudentSche
 async function run() {
   const directUri = process.env.MONGODB_URI.replace(
     'mongodb+srv://whoismuntasir04_db_user:%40muntasir04@cluster0.xrpvucx.mongodb.net/?appName=Cluster0',
-    'mongodb://whoismuntasir04_db_user:%40muntasir04@ac-vgtnowu-shard-00-00.xrpvucx.mongodb.net:27017,ac-vgtnowu-shard-00-01.xrpvucx.mongodb.net:27017,ac-vgtnowu-shard-00-02.xrpvucx.mongodb.net:27017/?ssl=true&replicaSet=atlas-2y4jxj-shard-0&authSource=admin&retryWrites=true&w=majority'
+    'mongodb://whoismuntasir04_db_user:%40muntasir04@ac-vgtnowu-shard-00-00.xrpvucx.mongodb.net:27017,ac-vgtnowu-shard-00-01.xrpvucx.mongodb.net:27017,ac-vgtnowu-shard-00-02.xrpvucx.mongodb.net:27017/?ssl=true&authSource=admin&retryWrites=true&w=majority'
   );
   await mongoose.connect(directUri, { family: 4 });
   console.log('Connected to MongoDB');

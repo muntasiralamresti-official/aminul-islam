@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useEffect, useRef, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, CalendarDays, CircleDollarSign, Edit3, Plus, ReceiptText, Trash2, Wallet, X } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -20,7 +20,7 @@ export default function DailyExpensePage(){
  useEffect(()=>{load()},[year,month]);
  const add=(t,trigger)=>{modalTriggerRef.current=trigger||null;setEditing(null);setForm(blank(t));setModalPosition(null);setModal(true)};
  const edit=(e,trigger)=>{if(e.source==="payment")return;modalTriggerRef.current=trigger||null;setEditing(e);setForm({type:e.type,category:e.category,amount:e.amount,description:e.description||"",method:e.method||"cash",date:dateValue(e.date)});setModalPosition(null);setModal(true)};
- const submit=async e=>{e.preventDefault();if(Number(form.amount)<=0)return toast.error("Enter a valid amount");setSaving(true);try{const r=await fetch(editing?`/api/daily-expenses/${editing._id}`:"/api/daily-expenses",{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...form,amount:Number(form.amount)})}),j=await r.json();if(!r.ok)throw Error(j.error);toast.success(editing?"Entry updated":"Entry added");setModal(false)}catch(x){toast.error(x.message||"Save failed")}finally{setSaving(false);load()}};
+ const submit=async e=>{e.preventDefault();if(Number(form.amount)<=0)return toast.error("Enter a valid amount");setSaving(true);try{const r=await fetch(editing?`/api/daily-expenses/${editing._id}`:"/api/daily-expenses",{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...form,amount:Number(form.amount)})}),j=await r.json();if(!r.ok)throw Error(j.error);toast.success(editing?"Entry updated":"Entry added");setModal(false);load()}catch(x){toast.error(x.message||"Save failed")}finally{setSaving(false)}};
  const remove=async e=>{if(e.source==="payment"||!window.confirm(`Delete ${money(e.amount)} ${e.type}?`))return;try{const r=await fetch(`/api/daily-expenses/${e._id}`,{method:"DELETE"}),j=await r.json();if(!r.ok)throw Error(j.error);toast.success("Entry deleted");load()}catch(x){toast.error(x.message)}};
  const groups=data.entries.reduce((a,e)=>{const k=new Date(e.date).toLocaleDateString("en-BD",{weekday:"long",day:"numeric",month:"short"});(a[k]??=[]).push(e);return a},{});
  useLayoutEffect(()=>{
@@ -33,7 +33,7 @@ export default function DailyExpensePage(){
    let top=triggerRect.bottom+gap;
    if(top>maxTop)top=Math.max(margin,triggerRect.top-panelRect.height-gap);
    top=Math.min(Math.max(margin,top),maxTop);
-   let left=Math.min(Math.max(margin,triggerRect.left),maxLeft);
+   const left=Math.min(Math.max(margin,triggerRect.left),maxLeft);
    setModalPosition({top,left});
   };
   updatePosition();

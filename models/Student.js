@@ -31,6 +31,11 @@ const StudentSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    photoUrl: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     monthlyFee: {
       type: Number,
       default: null,

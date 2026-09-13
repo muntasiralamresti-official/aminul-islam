@@ -28,7 +28,7 @@ export async function GET(request) {
     })
       .select("_id name roll photo photoUrl")
       .sort({ _id: 1 })
-      .limit(BATCH_SIZE)
+      .limit(1)
       .lean();
 
     if (students.length === 0) {

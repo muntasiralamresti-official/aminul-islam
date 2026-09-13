@@ -12,7 +12,11 @@ const StudentSchema = new mongoose.Schema(
 const Student = mongoose.models.Student || mongoose.model('Student', StudentSchema);
 
 async function run() {
-  await mongoose.connect(process.env.MONGODB_URI, { family: 4 });
+  const directUri = process.env.MONGODB_URI.replace(
+    'mongodb+srv://whoismuntasir04_db_user:%40muntasir04@cluster0.xrpvucx.mongodb.net/?appName=Cluster0',
+    'mongodb://whoismuntasir04_db_user:%40muntasir04@ac-vgtnowu-shard-00-00.xrpvucx.mongodb.net:27017,ac-vgtnowu-shard-00-01.xrpvucx.mongodb.net:27017,ac-vgtnowu-shard-00-02.xrpvucx.mongodb.net:27017/?ssl=true&replicaSet=atlas-2y4jxj-shard-0&authSource=admin&retryWrites=true&w=majority'
+  );
+  await mongoose.connect(directUri, { family: 4 });
   console.log('Connected to MongoDB');
 
   const students = await Student.find({ photo: { $ne: '' } });

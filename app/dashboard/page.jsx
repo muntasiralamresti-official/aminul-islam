@@ -15,35 +15,22 @@ function DashboardLoading() {
     <div className="animate-pulse" aria-label="Loading dashboard" role="status">
       <div className="h-8 w-64 rounded-lg bg-gray-200" />
       <div className="mt-2 h-4 w-96 max-w-full rounded bg-gray-100" />
-
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-8">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
         {Array.from({ length: 8 }).map((_, index) => (
-          <div key={index} className="rounded-xl bg-white p-5 shadow-sm">
-            <div className="h-9 w-9 rounded-lg bg-gray-200" />
+          <div key={index} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-5">
+            <div className="h-10 w-10 rounded-xl bg-gray-200" />
             <div className="mt-4 h-4 w-24 rounded bg-gray-200" />
             <div className="mt-2 h-7 w-20 rounded bg-gray-200" />
           </div>
         ))}
       </div>
-
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="rounded-xl bg-white p-6 shadow-sm lg:col-span-2">
-          <div className="h-5 w-48 rounded bg-gray-200" />
-          <div className="mt-5 h-72 rounded-lg bg-gray-100" />
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6 lg:col-span-2">
+          <div className="h-5 w-48 rounded bg-gray-200" /><div className="mt-5 h-72 rounded-xl bg-gray-100" />
         </div>
-        <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
           <div className="h-5 w-36 rounded bg-gray-200" />
-          <div className="mt-5 space-y-5">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="flex gap-3">
-                <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-4/5 rounded bg-gray-200" />
-                  <div className="h-3 w-2/5 rounded bg-gray-100" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="mt-5 space-y-5">{Array.from({ length: 5 }).map((_, index) => <div key={index} className="flex gap-3"><div className="h-10 w-10 shrink-0 rounded-xl bg-gray-200" /><div className="flex-1 space-y-2"><div className="h-4 w-4/5 rounded bg-gray-200" /><div className="h-3 w-2/5 rounded bg-gray-100" /></div></div>)}</div>
         </div>
       </div>
     </div>
@@ -85,47 +72,23 @@ export default function Dashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load dashboard data');
       setStats(data);
-      try {
-        sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }));
-      } catch {}
+      try { sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data })); } catch {}
     } catch (err) {
-      if (!silent) {
-        setError(true);
-        toast.error('Failed to load dashboard data');
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
+      if (!silent) { setError(true); toast.error('Failed to load dashboard data'); }
+    } finally { if (!silent) setLoading(false); }
   };
 
   useEffect(() => {
     let usedCache = false;
     try {
       const cached = JSON.parse(sessionStorage.getItem(DASHBOARD_CACHE_KEY) || 'null');
-      if (cached?.data && Date.now() - cached.savedAt < DASHBOARD_CACHE_TTL) {
-        setStats(cached.data);
-        setLoading(false);
-        usedCache = true;
-      }
+      if (cached?.data && Date.now() - cached.savedAt < DASHBOARD_CACHE_TTL) { setStats(cached.data); setLoading(false); usedCache = true; }
     } catch {}
-
     fetchDashboard({ silent: usedCache });
   }, []);
 
   if (loading) return <DashboardLoading />;
-
-  if (error || !stats) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="max-w-md rounded-2xl border border-red-100 bg-white p-8 text-center shadow-sm">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
-          <h2 className="mt-4 text-lg font-semibold text-gray-900">Couldn&apos;t load dashboard</h2>
-          <p className="mt-2 text-sm text-gray-500">Please check your connection and try again.</p>
-          <button onClick={fetchDashboard} className="mt-5 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Retry</button>
-        </div>
-      </div>
-    );
-  }
+  if (error || !stats) return <div className="flex min-h-[50vh] items-center justify-center"><div className="max-w-md rounded-2xl border border-red-100 bg-white p-8 text-center shadow-sm"><AlertCircle className="mx-auto h-12 w-12 text-red-500" /><h2 className="mt-4 text-lg font-semibold text-gray-900">Couldn&apos;t load dashboard</h2><p className="mt-2 text-sm text-gray-500">Please check your connection and try again.</p><button onClick={fetchDashboard} className="mt-5 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Retry</button></div></div>;
 
   const overviewCards = [
     { name: 'Total Students', value: stats.totalStudents || 0, icon: Users, className: 'bg-blue-50 text-blue-600' },
@@ -137,7 +100,6 @@ export default function Dashboard() {
     { name: 'This Month Collection', value: `৳${(stats.collectionThisMonth || 0).toLocaleString()}`, icon: CreditCard, className: 'bg-teal-50 text-teal-600' },
     { name: 'Total Due', value: `৳${(stats.totalDue || 0).toLocaleString()}`, icon: AlertCircle, className: 'bg-amber-50 text-amber-600' },
   ];
-
   const financialData = [
     { name: 'Expected', amount: stats.monthlyFinancial?.expected || 0 },
     { name: 'Collected', amount: stats.monthlyFinancial?.collected || 0 },
@@ -145,79 +107,43 @@ export default function Dashboard() {
   ];
 
   return (
-    <div>
+    <div className="dashboard-screen pb-2">
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Today&apos;s Overview</h1>
-          <p className="mt-1 text-sm text-gray-500">Welcome back, {session?.user?.name || 'User'}! Here&apos;s what is happening at your center.</p>
-        </div>
+        <div><h1 className="text-2xl font-semibold tracking-tight text-gray-900">Today&apos;s Overview</h1><p className="mt-1 text-sm text-gray-500">Welcome back, {session?.user?.name || 'User'}! Here&apos;s what is happening at your center.</p></div>
         <div className="flex items-center gap-2 text-xs font-medium text-gray-500"><span className="h-2 w-2 animate-pulse rounded-full bg-green-500" /> Live data</div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-8">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-4 sm:gap-4 xl:grid-cols-8">
         {overviewCards.map((item) => (
-          <div key={item.name} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition-shadow hover:shadow-md sm:p-5">
-            <div className={`inline-flex rounded-lg p-2.5 ${item.className}`}><item.icon className="h-5 w-5" aria-hidden="true" /></div>
-            <p className="mt-3 truncate text-xs font-medium text-gray-500" title={item.name}>{item.name}</p>
-            <p className="mt-1 text-xl font-bold text-gray-900">{item.value}</p>
+          <div key={item.name} className="dashboard-stat-card group relative overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5">
+            <div className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${item.className} shadow-sm`}><item.icon className="h-5 w-5" aria-hidden="true" /></div>
+            <p className="mt-3 truncate text-[11px] font-semibold uppercase tracking-wide text-gray-400" title={item.name}>{item.name}</p>
+            <p className="mt-1 text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">{item.value}</p>
+            <div className="pointer-events-none absolute -right-5 -top-5 h-16 w-16 rounded-full bg-gray-50 opacity-70 transition-transform duration-300 group-hover:scale-125" />
           </div>
         ))}
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6 lg:col-span-2">
-          <div className="flex items-start justify-between gap-4">
-            <div><h2 className="text-lg font-semibold text-gray-900">Monthly Financial</h2><p className="mt-1 text-sm text-gray-500">{stats.currentMonth} — Expected vs collected vs due</p></div>
-            <CreditCard className="h-5 w-5 text-gray-400" />
-          </div>
-          <div className="mt-5 h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={financialData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `৳${value}`} />
-                <Tooltip formatter={(value) => [`৳${Number(value).toLocaleString()}`, 'Amount']} />
-                <Bar dataKey="amount" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+        <div className="dashboard-panel rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6 lg:col-span-2">
+          <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold tracking-tight text-gray-900">Monthly Financial</h2><p className="mt-1 text-sm text-gray-500">{stats.currentMonth} — Expected vs collected vs due</p></div><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400"><CreditCard className="h-5 w-5" /></div></div>
+          <div className="mt-5 h-72 w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={financialData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `৳${value}`} /><Tooltip formatter={(value) => [`৳${Number(value).toLocaleString()}`, 'Amount']} /><Bar dataKey="amount" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveContainer></div>
         </div>
 
-        <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div><h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2><p className="mt-1 text-sm text-gray-500">Latest center activity</p></div>
-            <Activity className="h-5 w-5 text-gray-400" />
-          </div>
+        <div className="dashboard-panel rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
+          <div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold tracking-tight text-gray-900">Recent Activity</h2><p className="mt-1 text-sm text-gray-500">Latest center activity</p></div><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400"><Activity className="h-5 w-5" /></div></div>
           <div className="mt-5">
-            {stats.recentActivity?.length ? (
-              <div className="space-y-4">
-                {stats.recentActivity.map((activity) => {
-                  const config = activityConfig[activity.type] || activityConfig.student;
-                  const Icon = config.icon;
-                  return (
-                    <div key={activity.id} className="flex items-start gap-3">
-                      <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${config.iconClass}`}><Icon className="h-4 w-4" /></div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-800">{activity.title}</p>
-                        <div className="mt-0.5 flex items-center justify-between gap-2"><p className="truncate text-xs text-gray-500">{activity.detail}</p><span className="shrink-0 text-[11px] text-gray-400">{formatRelativeTime(activity.date)}</span></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="py-10 text-center"><Activity className="mx-auto h-9 w-9 text-gray-300" /><p className="mt-3 text-sm text-gray-500">No recent activity yet.</p></div>
-            )}
+            {stats.recentActivity?.length ? <div className="space-y-2">{stats.recentActivity.map((activity) => { const config = activityConfig[activity.type] || activityConfig.student; const Icon = config.icon; return <div key={activity.id} className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-gray-50"><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${config.iconClass}`}><Icon className="h-4 w-4" /></div><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-gray-800">{activity.title}</p><div className="mt-0.5 flex items-center justify-between gap-2"><p className="truncate text-xs text-gray-500">{activity.detail}</p><span className="shrink-0 text-[11px] text-gray-400">{formatRelativeTime(activity.date)}</span></div></div></div>; })}</div> : <div className="py-10 text-center"><Activity className="mx-auto h-9 w-9 text-gray-300" /><p className="mt-3 text-sm text-gray-500">No recent activity yet.</p></div>}
           </div>
         </div>
       </div>
 
-      <div className="mt-8 rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
-        <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2><p className="mt-1 text-sm text-gray-500">Common tasks you may need today.</p></div></div>
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Link href="/dashboard/students/new" className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition hover:border-blue-300 hover:bg-blue-50"><Users className="h-6 w-6 text-blue-500" /><span className="text-sm font-semibold text-gray-900">Add New Student</span></Link>
-          <Link href="/dashboard/fees" className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition hover:border-green-300 hover:bg-green-50"><CreditCard className="h-6 w-6 text-green-500" /><span className="text-sm font-semibold text-gray-900">Record Payment</span></Link>
-          <Link href="/dashboard/batches/new" className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition hover:border-indigo-300 hover:bg-indigo-50"><GraduationCap className="h-6 w-6 text-indigo-500" /><span className="text-sm font-semibold text-gray-900">Create Batch</span></Link>
+      <div className="dashboard-panel mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
+        <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold tracking-tight text-gray-900">Quick Actions</h2><p className="mt-1 text-sm text-gray-500">Common tasks you may need today.</p></div></div>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Link href="/dashboard/students/new" className="quick-action-card group flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-4 transition-all hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Users className="h-5 w-5" /></div><span className="text-sm font-semibold text-gray-900">Add New Student</span></Link>
+          <Link href="/dashboard/fees" className="quick-action-card group flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-4 transition-all hover:-translate-y-0.5 hover:border-green-200 hover:bg-green-50"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600"><CreditCard className="h-5 w-5" /></div><span className="text-sm font-semibold text-gray-900">Record Payment</span></Link>
+          <Link href="/dashboard/batches/new" className="quick-action-card group flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-4 transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><GraduationCap className="h-5 w-5" /></div><span className="text-sm font-semibold text-gray-900">Create Batch</span></Link>
         </div>
       </div>
     </div>

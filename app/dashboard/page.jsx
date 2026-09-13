@@ -60,28 +60,46 @@ function formatRelativeTime(value) {
 
 function getGreeting() {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return { title: 'Good Morning', emoji: '🌤️', tone: 'morning' };
-  if (hour >= 12 && hour < 17) return { title: 'Good Noon', emoji: '☀️', tone: 'noon' };
-  if (hour >= 17 && hour < 21) return { title: 'Good Evening', emoji: '🌇', tone: 'evening' };
-  return { title: 'Good Night', emoji: '🌙', tone: 'night' };
+  if (hour >= 5 && hour < 12) return { title: 'Good Morning', tone: 'morning', subtitle: 'Wishing you a productive day at the center.' };
+  if (hour >= 12 && hour < 17) return { title: 'Good Noon', tone: 'noon', subtitle: 'Keep up the great work at the center.' };
+  if (hour >= 17 && hour < 21) return { title: 'Good Evening', tone: 'evening', subtitle: 'Hope you had a productive day at the center.' };
+  return { title: 'Good Night', tone: 'night', subtitle: 'Have a peaceful night and a fresh start tomorrow.' };
 }
 
-function GreetingSticker({ name }) {
+function GreetingSticker() {
   const greeting = getGreeting();
   return (
     <div className="mb-5 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 via-white to-indigo-50 ring-1 ring-blue-100 shadow-sm">
-      <div className="flex min-h-[96px] items-center gap-4 px-4 py-3 sm:min-h-[112px] sm:px-6 sm:py-4">
-        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center sm:h-24 sm:w-24" aria-hidden="true">
-          <div className="absolute inset-1 rounded-[28%] bg-white shadow-sm ring-1 ring-blue-100" />
-          <div className="relative flex h-full w-full items-center justify-center text-[3.6rem] leading-none sm:text-[4.3rem]">
-            <span className="inline-block -rotate-6 drop-shadow-sm">👋</span>
+      <style jsx>{`
+        .greeting-mascot { animation: mascot-float 3s ease-in-out infinite; }
+        .greeting-arm { transform-origin: 82% 34%; animation: mascot-wave 1.5s ease-in-out infinite; }
+        .greeting-sparkle { animation: sparkle-pop 1.8s ease-in-out infinite; }
+        .greeting-sparkle-delay { animation-delay: .45s; }
+        @keyframes mascot-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes mascot-wave { 0%,100% { transform: rotate(10deg); } 50% { transform: rotate(-18deg); } }
+        @keyframes sparkle-pop { 0%,100% { opacity: .35; transform: scale(.8) rotate(0deg); } 50% { opacity: 1; transform: scale(1.1) rotate(12deg); } }
+        @media (prefers-reduced-motion: reduce) {
+          .greeting-mascot, .greeting-arm, .greeting-sparkle { animation: none; }
+        }
+      `}</style>
+      <div className="flex min-h-[104px] items-center gap-4 px-4 py-3 sm:min-h-[120px] sm:px-6 sm:py-4">
+        <div className="relative flex h-20 w-24 shrink-0 items-center justify-center sm:h-24 sm:w-28" aria-hidden="true">
+          <div className="greeting-mascot relative h-[76px] w-[76px] sm:h-[88px] sm:w-[88px]">
+            <div className="absolute left-[7px] top-[8px] h-[56px] w-[62px] rounded-[48%] bg-white shadow-[0_8px_20px_rgba(59,130,246,.16)] ring-1 ring-blue-100 sm:left-[8px] sm:top-[9px] sm:h-[64px] sm:w-[72px]">
+              <span className="absolute left-[19px] top-[25px] h-2 w-2 rounded-full bg-slate-700 sm:left-[23px] sm:top-[28px]" />
+              <span className="absolute right-[19px] top-[25px] h-2 w-2 rounded-full bg-slate-700 sm:right-[23px] sm:top-[28px]" />
+              <span className="absolute left-1/2 top-[36px] h-2 w-4 -translate-x-1/2 rounded-b-full border-b-2 border-blue-400 sm:top-[41px]" />
+            </div>
+            <div className="absolute bottom-0 left-[20px] h-[30px] w-[50px] rounded-t-[18px] rounded-b-[12px] bg-blue-500 shadow-sm sm:left-[22px] sm:h-[34px] sm:w-[56px]" />
+            <div className="greeting-arm absolute right-[-2px] top-[18px] h-[24px] w-[34px] rounded-full bg-blue-400 shadow-sm sm:right-[-5px] sm:top-[20px] sm:h-[28px] sm:w-[40px]" />
+            <span className="greeting-sparkle absolute right-[-8px] top-[-2px] text-xl text-amber-400">✦</span>
+            <span className="greeting-sparkle greeting-sparkle-delay absolute left-[-5px] top-[1px] text-sm text-blue-400">✦</span>
           </div>
-          <span className="absolute -right-1 top-0 text-lg">✨</span>
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Hi {name || 'Aminul Sir'} 👋</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Hi Aminul Sir</p>
           <h2 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900 sm:text-2xl">{greeting.title}!</h2>
-          <p className="mt-1 text-xs text-gray-500 sm:text-sm">Hope you&apos;re having a productive day at the center.</p>
+          <p className="mt-1 text-xs leading-5 text-gray-500 sm:text-sm">{greeting.subtitle}</p>
         </div>
       </div>
     </div>
@@ -138,9 +156,9 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-screen pb-2">
-      <GreetingSticker name={session?.user?.name || 'Aminul Sir'} />
+      <GreetingSticker />
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-        <div><h1 className="text-2xl font-semibold tracking-tight text-gray-900">Today&apos;s Overview</h1><p className="mt-1 text-sm text-gray-500">Welcome back, {session?.user?.name || 'User'}! Here&apos;s what is happening at your center.</p></div>
+        <div><h1 className="text-2xl font-semibold tracking-tight text-gray-900">Today&apos;s Overview</h1><p className="mt-1 text-sm text-gray-500">Welcome back, Aminul Sir! Here&apos;s what is happening at your center.</p></div>
         <div className="flex items-center gap-2 text-xs font-medium text-gray-500"><span className="h-2 w-2 animate-pulse rounded-full bg-green-500" /> Live data</div>
       </div>
 

@@ -4,7 +4,9 @@ import Student from '@/models/Student';
 import Batch from '@/models/Batch';
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const studentListFields = 'name rollNumber phone guardianPhone batch status photoUrl photo createdAt';
+const studentListFields = 'name rollNumber phone guardianPhone batch status photoUrl createdAt';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {

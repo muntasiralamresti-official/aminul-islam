@@ -242,13 +242,15 @@ export default function AttendancePage() {
                 <div className="overflow-x-auto">
                   <table className="min-w-[720px] w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50"><tr>
+                      <th className="w-10 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">#</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Roll</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Student</th>
                       <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600">Status</th>
                     </tr></thead>
                     <tbody className="divide-y divide-gray-100">
-                      {attendanceData.records.map((record) => (
+                      {attendanceData.records.map((record, index) => (
                         <tr key={record.student._id} className={`transition-colors ${record.status === 'absent' ? 'bg-red-50/60' : 'hover:bg-gray-50'}`}>
+                          <td className="px-4 py-3.5 text-sm text-gray-400">{index + 1}</td>
                           <td className="px-4 py-3.5 text-sm font-semibold text-gray-700">{record.student.rollNumber}</td>
                           <td className="px-4 py-3.5 text-sm font-medium text-gray-900">{record.student.name}</td>
                           <td className="px-4 py-3.5 text-center">
@@ -308,7 +310,8 @@ export default function AttendancePage() {
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-max divide-y divide-gray-200">
                       <thead className="bg-gray-50"><tr>
-                        <th className="sticky left-0 z-10 min-w-[210px] bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Student</th>
+                        <th className="w-10 sticky left-0 z-20 bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">#</th>
+                        <th className="sticky left-10 z-10 min-w-[210px] bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Student</th>
                         <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600">%</th>
                         <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-emerald-700">P</th>
                         <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-red-700">A</th>
@@ -317,9 +320,10 @@ export default function AttendancePage() {
                         {classDates.map((classDate) => <th key={classDate.date} className="min-w-[46px] px-2 py-3 text-center text-xs font-semibold text-gray-600" title={classDate.date}>{classDate.day}</th>)}
                       </tr></thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
-                        {summaryData.map((row) => (
+                        {summaryData.map((row, index) => (
                           <tr key={row.student._id} className={row.needsAttention ? 'bg-red-50/60' : 'hover:bg-gray-50'}>
-                            <td className={`sticky left-0 z-10 px-4 py-3 ${row.needsAttention ? 'bg-red-50' : 'bg-white'}`}>
+                            <td className={`sticky left-0 z-20 px-4 py-3 text-sm text-gray-400 ${row.needsAttention ? 'bg-red-50' : 'bg-white'}`}>{index + 1}</td>
+                            <td className={`sticky left-10 z-10 px-4 py-3 ${row.needsAttention ? 'bg-red-50' : 'bg-white'}`}>
                               <div className="flex items-center gap-2">
                                 {row.needsAttention && <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />}
                                 <div><div className="text-sm font-semibold text-gray-900">{row.student.name}</div><div className="text-xs text-gray-500">Roll: {row.student.rollNumber}</div></div>

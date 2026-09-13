@@ -34,11 +34,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   outline-offset: 2px;
 }
 
-/* Mobile/PWA safe areas: keeps the shell clear of notches and gesture bars. */
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+main { min-width: 0; }
 
-/* Shared loader for dashboard pages that use a simple loading placeholder. */
 main:has(> .p-4) > .p-4 {
   min-height: calc(100vh - 150px);
   display: flex;
@@ -73,18 +72,91 @@ main:has(> .p-4) > .p-4::after {
   animation: dashboard-loader-pulse 1.4s ease-in-out infinite;
 }
 
-/* Subtle route-entry motion: opacity only, so fixed modals remain viewport-centered. */
 .page-transition { animation: page-enter 160ms ease-out both; }
 .ui-modal { animation: modal-backdrop-in 160ms ease-out both; }
 .ui-modal-panel { animation: modal-panel-in 190ms cubic-bezier(.2,.8,.2,1) both; }
 
-/* Tables stay readable and scroll naturally on phones. */
 table { min-width: 640px; }
 .overflow-x-auto { -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+
 @media (max-width: 640px) {
-  table th, table td { padding-top: 0.7rem; padding-bottom: 0.7rem; }
   button, a { touch-action: manipulation; }
   input, select, textarea { font-size: 16px; }
+
+  .overflow-x-auto:has(table) {
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+
+  .overflow-x-auto:has(table) table {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .overflow-x-auto:has(table) thead { display: none; }
+
+  .overflow-x-auto:has(table) tbody {
+    display: grid;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .overflow-x-auto:has(table) tbody tr {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+  }
+
+  .overflow-x-auto:has(table) tbody tr:hover { background: #ffffff; }
+
+  .overflow-x-auto:has(table) tbody td {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: normal;
+  }
+
+  .overflow-x-auto:has(table) tbody td:last-child { border-bottom: 0; }
+  .overflow-x-auto:has(table) tbody td > * { min-width: 0; }
+  .overflow-x-auto:has(table) tbody td[colspan] {
+    display: block;
+    padding: 2rem 1rem;
+    border-bottom: 0;
+    text-align: center;
+  }
+
+  .overflow-x-auto:has(table) tbody td:first-child {
+    padding-top: 1rem;
+    border-bottom-color: #e2e8f0;
+  }
+
+  .overflow-x-auto:has(table) tbody td:last-child a,
+  .overflow-x-auto:has(table) tbody td:last-child button {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  .overflow-x-auto:has(table) colgroup,
+  .overflow-x-auto:has(table) col {
+    width: auto !important;
+  }
+
+  .page-transition { padding-bottom: 0.5rem; }
+  .page-transition .rounded-xl,
+  .page-transition .rounded-2xl { border-radius: 1rem; }
 }
 
 @keyframes dashboard-loader-spin { to { transform: rotate(360deg); } }

@@ -26,8 +26,11 @@ function StudentsContent() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteId, setDeleteId] = useState(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [pulling, setPulling] = useState(false);
   const hasDataRef = useRef(false);
   const prefetchRef = useRef(new Set());
+  const touchStartRef = useRef({ x: 0, y: 0 });
   const pageSize = 10;
 
   useEffect(() => {
@@ -135,6 +138,40 @@ function StudentsContent() {
     fetchStudents();
   }, [fetchStudents]);
 
+  const refreshStudents = useCallback(async () => {
+    if (refreshing) return;
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
+    await fetchStudents({ force: true });
+  }, [fetchStudents, refreshing]);
+
+  const handleTouchStart = useCallback((event) => {
+    if (window.scrollY > 2 || refreshing || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    setPulling(true);
+  }, [refreshing]);
+
+  const handleTouchMove = useCallback((event) => {
+    if (!pulling || refreshing || window.scrollY > 2 || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    if (deltaY <= 0 || deltaY < deltaX) {
+      setPullDistance(0);
+      return;
+    }
+    if (deltaY > 8) event.preventDefault();
+    setPullDistance(Math.min(88, deltaY * 0.45));
+  }, [pulling, refreshing]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!pulling) return;
+    const shouldRefresh = pullDistance >= 54 && !refreshing;
+    setPulling(false);
+    setPullDistance(0);
+    if (shouldRefresh) refreshStudents();
+  }, [pulling, pullDistance, refreshing, refreshStudents]);
+
   const updateUrl = (page) => {
     const params = new URLSearchParams();
     if (searchQuery) params.set("search", searchQuery);
@@ -194,10 +231,7 @@ function StudentsContent() {
           </div>
           <h2 className="mt-4 text-lg font-semibold text-gray-900">Couldn&apos;t load students</h2>
           <p className="mt-2 text-sm text-gray-500">Check your internet connection or try again.</p>
-          <button
-            onClick={() => fetchStudents({ force: true })}
-            className="mt-5 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-          >
+          <button onClick={() => fetchStudents({ force: true })} className="mt-5 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
             <RefreshCw className="mr-2 h-4 w-4" /> Retry
           </button>
         </div>
@@ -209,7 +243,19 @@ function StudentsContent() {
   const lastResult = Math.min(currentPage * pageSize, total);
 
   return (
-    <div className="w-full pb-4">
+    <div
+      className="w-full pb-4"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{ touchAction: pulling ? "none" : "pan-y" }}
+    >
+      <div className="pointer-events-none fixed left-0 right-0 top-0 z-[120] flex justify-center sm:hidden" style={{ paddingTop: `calc(${Math.max(0, pullDistance - 30)}px + env(safe-area-inset-top))`, opacity: Math.min(1, pullDistance / 45) }} aria-hidden="true">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg">
+          <RefreshCw className={`h-4 w-4 text-blue-600 transition-transform ${pullDistance >= 54 ? "rotate-180" : ""} ${refreshing ? "animate-spin" : ""}`} />
+        </div>
+      </div>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold text-gray-900">Students</h1>
@@ -217,19 +263,9 @@ function StudentsContent() {
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <div className="relative w-full sm:w-72">
-            <input
-              type="search"
-              inputMode="search"
-              placeholder="Search name, roll, phone or batch..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="block min-h-11 w-full rounded-xl border border-gray-300 p-2.5 text-sm text-black shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
+            <input type="search" inputMode="search" placeholder="Search name, roll, phone or batch..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="block min-h-11 w-full rounded-xl border border-gray-300 p-2.5 text-sm text-black shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
           </div>
-          <Link
-            href="/dashboard/students/new"
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 sm:w-auto"
-          >
+          <Link href="/dashboard/students/new" className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 sm:w-auto">
             <Plus className="mr-2 h-4 w-4" /> Add Student
           </Link>
         </div>
@@ -239,87 +275,33 @@ function StudentsContent() {
         <div className="w-full overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-[800px] table-fixed divide-y divide-gray-200">
             <colgroup>
-              <col className="w-[5%]" />
-              <col className="w-[10%]" />
-              <col className="w-[22%]" />
-              <col className="w-[18%]" />
-              <col className="w-[23%]" />
-              <col className="w-[10%]" />
-              <col className="w-[12%]" />
+              <col className="w-[5%]" /><col className="w-[10%]" /><col className="w-[22%]" /><col className="w-[18%]" /><col className="w-[23%]" /><col className="w-[10%]" /><col className="w-[12%]" />
             </colgroup>
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="py-3.5 pl-4 pr-2 text-left text-xs font-semibold text-gray-500 sm:pl-6">#</th>
-                <th className="py-3.5 pr-3 text-left text-sm font-semibold text-gray-900">Roll No</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Phone</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Batch</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                <th className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
+            <thead className="bg-gray-50"><tr>
+              <th className="py-3.5 pl-4 pr-2 text-left text-xs font-semibold text-gray-500 sm:pl-6">#</th>
+              <th className="py-3.5 pr-3 text-left text-sm font-semibold text-gray-900">Roll No</th>
+              <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
+              <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Phone</th>
+              <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Batch</th>
+              <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+              <th className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">Actions</span></th>
+            </tr></thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {students.map((student, index) => (
                 <tr key={student._id} className="transition-colors hover:bg-gray-50/80">
-                  <td className="whitespace-nowrap py-4 pl-4 pr-2 text-sm text-gray-400 sm:pl-6">
-                    {(currentPage - 1) * pageSize + index + 1}
-                  </td>
+                  <td className="whitespace-nowrap py-4 pl-4 pr-2 text-sm text-gray-400 sm:pl-6">{(currentPage - 1) * pageSize + index + 1}</td>
                   <td className="whitespace-nowrap py-4 pr-3 text-sm font-medium text-gray-900">{student.rollNumber}</td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 flex-shrink-0">
-                        {student.photoUrl ? (
-                          <img
-                            className="h-8 w-8 rounded-full object-cover border"
-                            src={`${student.photoUrl}?tr=w-64,h-64,f-webp,q-80`}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                            {student.name.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="ml-3 truncate font-medium text-gray-900">{student.name}</div>
-                    </div>
-                  </td>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><div className="flex items-center"><div className="h-8 w-8 flex-shrink-0">{student.photoUrl ? <img className="h-8 w-8 rounded-full border object-cover" src={`${student.photoUrl}?tr=w-64,h-64,f-webp,q-80`} alt="" loading="lazy" decoding="async" /> : <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600">{student.name.charAt(0)}</div>}</div><div className="ml-3 truncate font-medium text-gray-900">{student.name}</div></div></td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{student.phone}</td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><div className="truncate">{student.batch?.name || "N/A"}</div></td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${student.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{student.status}</span>
-                  </td>
-                  <td className="relative whitespace-nowrap py-4 pl-2 pr-3 text-right text-sm font-medium sm:pl-3 sm:pr-6">
-                    <Link href={`/dashboard/students/${student._id}`} className="mr-0 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 sm:mr-1" aria-label={`View ${student.name}`}><Eye className="h-4 w-4" /></Link>
-                    <Link href={`/dashboard/students/${student._id}/edit`} className="mr-0 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-900 sm:mr-1" aria-label={`Edit ${student.name}`}><Edit className="h-4 w-4" /></Link>
-                    <button onClick={() => setDeleteId(student._id)} className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 hover:text-red-900" aria-label={`Delete ${student.name}`}><Trash2 className="h-4 w-4" /></button>
-                  </td>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${student.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{student.status}</span></td>
+                  <td className="relative whitespace-nowrap py-4 pl-2 pr-3 text-right text-sm font-medium sm:pl-3 sm:pr-6"><Link href={`/dashboard/students/${student._id}`} className="mr-0 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 sm:mr-1" aria-label={`View ${student.name}`}><Eye className="h-4 w-4" /></Link><Link href={`/dashboard/students/${student._id}/edit`} className="mr-0 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-900 sm:mr-1" aria-label={`Edit ${student.name}`}><Edit className="h-4 w-4" /></Link><button onClick={() => setDeleteId(student._id)} className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 hover:text-red-900" aria-label={`Delete ${student.name}`}><Trash2 className="h-4 w-4" /></button></td>
                 </tr>
               ))}
-              {students.length === 0 && (
-                <tr>
-                  <td colSpan="7" className="py-14 text-center">
-                    <div className="mx-auto max-w-sm">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600"><Plus className="h-6 w-6" /></div>
-                      <p className="mt-3 text-sm font-medium text-gray-900">{searchQuery ? "No students match your search" : "No students found"}</p>
-                      <p className="mt-1 text-sm text-gray-500">{searchQuery ? "Try a different name, roll, phone, or batch." : "Create your first student to get started."}</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
+              {students.length === 0 && <tr><td colSpan="7" className="py-14 text-center"><div className="mx-auto max-w-sm"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600"><Plus className="h-6 w-6" /></div><p className="mt-3 text-sm font-medium text-gray-900">{searchQuery ? "No students match your search" : "No students found"}</p><p className="mt-1 text-sm text-gray-500">{searchQuery ? "Try a different name, roll, phone, or batch." : "Create your first student to get started."}</p></div></td></tr>}
             </tbody>
           </table>
-          {total > 0 && (
-            <div className="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-gray-600">Showing {firstResult} to {lastResult} of {total} students</p>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="min-h-10 rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Previous</button>
-                <span className="min-w-20 text-center text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
-                <button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="min-h-10 rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Next</button>
-              </div>
-            </div>
-          )}
+          {total > 0 && <div className="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-gray-600">Showing {firstResult} to {lastResult} of {total} students</p><div className="flex items-center gap-2"><button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="min-h-10 rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Previous</button><span className="min-w-20 text-center text-sm text-gray-600">Page {currentPage} of {totalPages}</span><button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="min-h-10 rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Next</button></div></div>}
         </div>
       </div>
       {refreshing && <div className="mt-2 flex items-center justify-end gap-1.5 text-xs text-gray-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating…</div>}

@@ -102,14 +102,53 @@ export default function SettingsPage() {
   const handleMigrateImages = async () => {
     if (!confirm("Are you sure? This will migrate all old student photos to ImageKit.")) return;
     setMigrating(true);
-    const tId = toast.loading("Migrating images to ImageKit... Please wait.");
+    const tId = toast.loading("Migrating images to ImageKit...");
+    let totalMigrated = 0;
+    let totalFailed = 0;
+    let attempts = 0;
+
     try {
-      const res = await fetch("/api/migrate-images");
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(`Migration complete! Migrated: ${data.successCount}, Failed: ${data.failCount}`, { id: tId });
+      while (attempts < 100) {
+        attempts++;
+        const res = await fetch("/api/migrate-images?batch=1", {
+          cache: "no-store",
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to migrate images");
+        }
+
+        totalMigrated += data.successCount || 0;
+        totalFailed += data.failCount || 0;
+
+        if (data.done) break;
+
+        // If a batch made no progress, stop instead of retrying forever.
+        if ((data.successCount || 0) === 0 && (data.failCount || 0) > 0) {
+          break;
+        }
+
+        toast.loading(
+          `Migrating images... ${totalMigrated} migrated, ${data.remainingCount} remaining`,
+          { id: tId },
+        );
+      }
+
+      if (attempts >= 100) {
+        toast.error(
+          `Migration stopped after 100 batches. Migrated: ${totalMigrated}, Failed: ${totalFailed}`,
+          { id: tId },
+        );
+      } else if (totalFailed > 0) {
+        toast.success(
+          `Migration finished. Migrated: ${totalMigrated}, Failed: ${totalFailed}. Run again to retry failed images.`,
+          { id: tId },
+        );
       } else {
-        throw new Error(data.error || "Failed to migrate");
+        toast.success(`Migration complete! Migrated: ${totalMigrated}`, {
+          id: tId,
+        });
       }
     } catch (error) {
       toast.error(error.message || "Migration failed", { id: tId });
@@ -132,51 +171,21 @@ export default function SettingsPage() {
         <h2 className="text-lg font-medium">Coaching Profile</h2>
         <div className="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 gap-x-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Center Name
-            </label>
-            <input
-              type="text"
-              name="centerName"
-              value={formData.centerName}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
-            />
+            <label className="block text-sm font-medium text-gray-700">Center Name</label>
+            <input type="text" name="centerName" value={formData.centerName} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Contact Email
-            </label>
-            <input
-              type="email"
-              name="contactEmail"
-              value={formData.contactEmail}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
-            />
+            <label className="block text-sm font-medium text-gray-700">Contact Email</label>
+            <input type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Default Monthly Fee (৳)
-            </label>
-            <p className="text-xs text-gray-500 mb-1">
-              Used to estimate &apos;Total Due&apos; on the dashboard.
-            </p>
-            <input
-              type="number"
-              name="defaultFee"
-              value={formData.defaultFee}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
-            />
+            <label className="block text-sm font-medium text-gray-700">Default Monthly Fee (৳)</label>
+            <p className="text-xs text-gray-500 mb-1">Used to estimate &apos;Total Due&apos; on the dashboard.</p>
+            <input type="number" name="defaultFee" value={formData.defaultFee} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" />
           </div>
         </div>
         <div className="mt-6">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50"
-          >
+          <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50">
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
@@ -184,106 +193,32 @@ export default function SettingsPage() {
 
       <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-md p-6">
         <h2 className="text-lg font-medium text-gray-900">Login Account</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Change the email or password used to sign in.
-        </p>
-        <form
-          onSubmit={handleAccountSave}
-          className="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 gap-x-4"
-        >
+        <p className="mt-1 text-sm text-gray-500">Change the email or password used to sign in.</p>
+        <form onSubmit={handleAccountSave} className="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 gap-x-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Login Email
-            </label>
-            <input
-              type="email"
-              required
-              value={accountData.email}
-              onChange={(e) =>
-                setAccountData({ ...accountData, email: e.target.value })
-              }
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black"
-            />
+            <label className="block text-sm font-medium text-gray-700">Login Email</label>
+            <input type="email" required value={accountData.email} onChange={(e) => setAccountData({ ...accountData, email: e.target.value })} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Current Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Current Password</label>
             <div className="relative mt-1">
-              <input
-                type={showAccountPasswords ? "text" : "password"}
-                required
-                value={accountData.currentPassword}
-                onChange={(e) =>
-                  setAccountData({
-                    ...accountData,
-                    currentPassword: e.target.value,
-                  })
-                }
-                className="block w-full rounded-md border-gray-300 shadow-sm border p-2 pr-10 text-black"
-              />
-              <button
-                type="button"
-                onClick={() => setShowAccountPasswords((visible) => !visible)}
-                aria-label={
-                  showAccountPasswords ? "Hide passwords" : "Show passwords"
-                }
-                title={
-                  showAccountPasswords ? "Hide passwords" : "Show passwords"
-                }
-                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-900"
-              >
-                {showAccountPasswords ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
+              <input type={showAccountPasswords ? "text" : "password"} required value={accountData.currentPassword} onChange={(e) => setAccountData({ ...accountData, currentPassword: e.target.value })} className="block w-full rounded-md border-gray-300 shadow-sm border p-2 pr-10 text-black" />
+              <button type="button" onClick={() => setShowAccountPasswords((visible) => !visible)} aria-label={showAccountPasswords ? "Hide passwords" : "Show passwords"} title={showAccountPasswords ? "Hide passwords" : "Show passwords"} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-900">
+                {showAccountPasswords ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              New Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700">New Password</label>
             <div className="relative mt-1">
-              <input
-                type={showAccountPasswords ? "text" : "password"}
-                minLength={8}
-                value={accountData.newPassword}
-                onChange={(e) =>
-                  setAccountData({
-                    ...accountData,
-                    newPassword: e.target.value,
-                  })
-                }
-                placeholder="Leave blank to keep current password"
-                className="block w-full rounded-md border-gray-300 shadow-sm border p-2 pr-10 text-black"
-              />
-              <button
-                type="button"
-                onClick={() => setShowAccountPasswords((visible) => !visible)}
-                aria-label={
-                  showAccountPasswords ? "Hide passwords" : "Show passwords"
-                }
-                title={
-                  showAccountPasswords ? "Hide passwords" : "Show passwords"
-                }
-                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-900"
-              >
-                {showAccountPasswords ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
+              <input type={showAccountPasswords ? "text" : "password"} minLength={8} value={accountData.newPassword} onChange={(e) => setAccountData({ ...accountData, newPassword: e.target.value })} placeholder="Leave blank to keep current password" className="block w-full rounded-md border-gray-300 shadow-sm border p-2 pr-10 text-black" />
+              <button type="button" onClick={() => setShowAccountPasswords((visible) => !visible)} aria-label={showAccountPasswords ? "Hide passwords" : "Show passwords"} title={showAccountPasswords ? "Hide passwords" : "Show passwords"} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-900">
+                {showAccountPasswords ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
           </div>
           <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={accountSaving}
-              className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50"
-            >
+            <button type="submit" disabled={accountSaving} className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50">
               {accountSaving ? "Updating..." : "Update Login"}
             </button>
           </div>
@@ -291,20 +226,13 @@ export default function SettingsPage() {
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 max-w-2xl mt-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
-          System Maintenance
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">System Maintenance</h2>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4">
           <div>
             <p className="text-sm font-medium text-gray-900">Migrate Old Images</p>
             <p className="text-sm text-gray-500">Move all old student photos from database to ImageKit for faster loading.</p>
           </div>
-          <button
-            type="button"
-            onClick={handleMigrateImages}
-            disabled={migrating}
-            className="mt-3 sm:mt-0 bg-indigo-600 text-white px-4 py-2 rounded shadow-sm hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
-          >
+          <button type="button" onClick={handleMigrateImages} disabled={migrating} className="mt-3 sm:mt-0 bg-indigo-600 text-white px-4 py-2 rounded shadow-sm hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium">
             {migrating ? "Migrating..." : "Run Migration"}
           </button>
         </div>

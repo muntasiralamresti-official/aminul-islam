@@ -58,6 +58,36 @@ function formatRelativeTime(value) {
   return new Date(value).toLocaleDateString();
 }
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return { title: 'Good Morning', emoji: '🌤️', tone: 'morning' };
+  if (hour >= 12 && hour < 17) return { title: 'Good Noon', emoji: '☀️', tone: 'noon' };
+  if (hour >= 17 && hour < 21) return { title: 'Good Evening', emoji: '🌇', tone: 'evening' };
+  return { title: 'Good Night', emoji: '🌙', tone: 'night' };
+}
+
+function GreetingSticker({ name }) {
+  const greeting = getGreeting();
+  return (
+    <div className="mb-5 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 via-white to-indigo-50 ring-1 ring-blue-100 shadow-sm">
+      <div className="flex min-h-[96px] items-center gap-4 px-4 py-3 sm:min-h-[112px] sm:px-6 sm:py-4">
+        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center sm:h-24 sm:w-24" aria-hidden="true">
+          <div className="absolute inset-1 rounded-[28%] bg-white shadow-sm ring-1 ring-blue-100" />
+          <div className="relative flex h-full w-full items-center justify-center text-[3.6rem] leading-none sm:text-[4.3rem]">
+            <span className="inline-block -rotate-6 drop-shadow-sm">👋</span>
+          </div>
+          <span className="absolute -right-1 top-0 text-lg">✨</span>
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Hi {name || 'Aminul Sir'} 👋</p>
+          <h2 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900 sm:text-2xl">{greeting.title}!</h2>
+          <p className="mt-1 text-xs text-gray-500 sm:text-sm">Hope you&apos;re having a productive day at the center.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { data: session } = useSession();
   const [stats, setStats] = useState(null);
@@ -108,6 +138,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-screen pb-2">
+      <GreetingSticker name={session?.user?.name || 'Aminul Sir'} />
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
         <div><h1 className="text-2xl font-semibold tracking-tight text-gray-900">Today&apos;s Overview</h1><p className="mt-1 text-sm text-gray-500">Welcome back, {session?.user?.name || 'User'}! Here&apos;s what is happening at your center.</p></div>
         <div className="flex items-center gap-2 text-xs font-medium text-gray-500"><span className="h-2 w-2 animate-pulse rounded-full bg-green-500" /> Live data</div>

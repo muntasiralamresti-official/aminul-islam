@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectMongo from '@/lib/db';
 import DailyExpense from '@/models/DailyExpense';
 import Payment from '@/models/Payment';
+import Student from '@/models/Student';
 
 export const dynamic = 'force-dynamic';
 

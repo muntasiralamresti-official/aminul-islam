@@ -2,8 +2,7 @@
 
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Plus, Edit, Trash2, Eye, RefreshCw, WifiOff, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, RefreshCw, WifiOff, Loader2, GraduationCap, Phone, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -56,9 +55,7 @@ function StudentsContent() {
   }, [searchInput, searchQuery, router]);
 
   const saveCache = useCallback((key, data) => {
-    try {
-      sessionStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data }));
-    } catch {}
+    try { sessionStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data })); } catch {}
   }, []);
 
   const prefetchNextPage = useCallback(async (page, search, totalPagesValue) => {
@@ -75,14 +72,8 @@ function StudentsContent() {
       const res = await fetch(`/api/students?page=${nextPage}&limit=${pageSize}`, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
-      saveCache(key, {
-        students: data.students || [],
-        total: data.total || 0,
-        totalPages: data.totalPages || 1,
-      });
-    } catch {} finally {
-      prefetchRef.current.delete(key);
-    }
+      saveCache(key, { students: data.students || [], total: data.total || 0, totalPages: data.totalPages || 1 });
+    } catch {} finally { prefetchRef.current.delete(key); }
   }, [saveCache]);
 
   const fetchStudents = useCallback(async ({ force = false } = {}) => {
@@ -92,18 +83,12 @@ function StudentsContent() {
       try {
         const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
         if (cached?.data && Date.now() - cached.savedAt < STUDENTS_CACHE_TTL) {
-          setStudents(cached.data.students || []);
-          setTotal(cached.data.total || 0);
-          setTotalPages(cached.data.totalPages || 1);
-          setLoading(false);
-          setRefreshing(true);
-          hasDataRef.current = true;
-          loadedFromCache = true;
+          setStudents(cached.data.students || []); setTotal(cached.data.total || 0); setTotalPages(cached.data.totalPages || 1);
+          setLoading(false); setRefreshing(true); hasDataRef.current = true; loadedFromCache = true;
         }
       } catch {}
     }
-    if (!hasDataRef.current) setLoading(true);
-    else if (!loadedFromCache) setRefreshing(true);
+    if (!hasDataRef.current) setLoading(true); else if (!loadedFromCache) setRefreshing(true);
     setError("");
     try {
       const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) });
@@ -111,32 +96,16 @@ function StudentsContent() {
       const res = await fetch(`/api/students?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load students");
-      const result = {
-        students: data.students || [],
-        total: data.total || 0,
-        totalPages: data.totalPages || 1,
-      };
-      setStudents(result.students);
-      setTotal(result.total);
-      setTotalPages(result.totalPages);
-      hasDataRef.current = true;
-      saveCache(cacheKey, result);
-      prefetchNextPage(currentPage, searchQuery, result.totalPages);
+      const result = { students: data.students || [], total: data.total || 0, totalPages: data.totalPages || 1 };
+      setStudents(result.students); setTotal(result.total); setTotalPages(result.totalPages); hasDataRef.current = true;
+      saveCache(cacheKey, result); prefetchNextPage(currentPage, searchQuery, result.totalPages);
     } catch (fetchError) {
       const message = fetchError.message || "Failed to load students";
-      if (!hasDataRef.current) {
-        setError(message);
-        toast.error(message);
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+      if (!hasDataRef.current) { setError(message); toast.error(message); }
+    } finally { setLoading(false); setRefreshing(false); }
   }, [currentPage, searchQuery, prefetchNextPage, saveCache]);
 
-  useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+  useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
   const refreshStudents = useCallback(async () => {
     if (refreshing) return;
@@ -146,170 +115,91 @@ function StudentsContent() {
 
   const handleTouchStart = useCallback((event) => {
     if (window.scrollY > 2 || refreshing || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-    setPulling(true);
+    const touch = event.touches[0]; touchStartRef.current = { x: touch.clientX, y: touch.clientY }; setPulling(true);
   }, [refreshing]);
-
   const handleTouchMove = useCallback((event) => {
     if (!pulling || refreshing || window.scrollY > 2 || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    const deltaY = touch.clientY - touchStartRef.current.y;
-    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
-    if (deltaY <= 0 || deltaY < deltaX) {
-      setPullDistance(0);
-      return;
-    }
-    if (deltaY > 8) event.preventDefault();
-    setPullDistance(Math.min(88, deltaY * 0.45));
+    const touch = event.touches[0]; const deltaY = touch.clientY - touchStartRef.current.y; const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    if (deltaY <= 0 || deltaY < deltaX) { setPullDistance(0); return; }
+    if (deltaY > 8) event.preventDefault(); setPullDistance(Math.min(88, deltaY * 0.45));
   }, [pulling, refreshing]);
-
   const handleTouchEnd = useCallback(() => {
-    if (!pulling) return;
-    const shouldRefresh = pullDistance >= 54 && !refreshing;
-    setPulling(false);
-    setPullDistance(0);
-    if (shouldRefresh) refreshStudents();
+    if (!pulling) return; const shouldRefresh = pullDistance >= 54 && !refreshing; setPulling(false); setPullDistance(0); if (shouldRefresh) refreshStudents();
   }, [pulling, pullDistance, refreshing, refreshStudents]);
 
   const updateUrl = (page) => {
-    const params = new URLSearchParams();
-    if (searchQuery) params.set("search", searchQuery);
-    if (page > 1) params.set("page", String(page));
-    const query = params.toString();
-    router.replace(query ? `/dashboard/students?${query}` : "/dashboard/students");
+    const params = new URLSearchParams(); if (searchQuery) params.set("search", searchQuery); if (page > 1) params.set("page", String(page));
+    const query = params.toString(); router.replace(query ? `/dashboard/students?${query}` : "/dashboard/students");
   };
-
-  const handlePageChange = (page) => {
-    const nextPage = Math.max(1, Math.min(totalPages, page));
-    setCurrentPage(nextPage);
-    updateUrl(nextPage);
-  };
+  const handlePageChange = (page) => { const nextPage = Math.max(1, Math.min(totalPages, page)); setCurrentPage(nextPage); updateUrl(nextPage); };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
-    const id = deleteId;
-    setDeleteId(null);
+    if (!deleteId) return; const id = deleteId; setDeleteId(null);
     try {
-      const res = await fetch(`/api/students/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete student");
-      toast.success("Student deleted");
-      hasDataRef.current = false;
-      try {
-        Object.keys(sessionStorage)
-          .filter((key) => key.startsWith("aminul-islam-students-"))
-          .forEach((key) => sessionStorage.removeItem(key));
-      } catch {}
-      if (students.length === 1 && currentPage > 1) handlePageChange(currentPage - 1);
-      else fetchStudents({ force: true });
-    } catch (deleteError) {
-      toast.error(deleteError.message || "Error deleting student");
-    }
+      const res = await fetch(`/api/students/${id}`, { method: "DELETE" }); if (!res.ok) throw new Error("Failed to delete student");
+      toast.success("Student deleted"); hasDataRef.current = false;
+      try { Object.keys(sessionStorage).filter((key) => key.startsWith("aminul-islam-students-")).forEach((key) => sessionStorage.removeItem(key)); } catch {}
+      if (students.length === 1 && currentPage > 1) handlePageChange(currentPage - 1); else fetchStudents({ force: true });
+    } catch (deleteError) { toast.error(deleteError.message || "Error deleting student"); }
   };
 
-  if (loading) {
-    return (
-      <div>
-        <div className="mb-8 flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-6 w-28 animate-pulse rounded bg-gray-200" />
-            <div className="h-4 w-72 animate-pulse rounded bg-gray-100" />
-          </div>
-          <div className="hidden h-10 w-32 animate-pulse rounded-md bg-gray-200 sm:block" />
-        </div>
-        <TableSkeleton columns={6} rows={7} />
-      </div>
-    );
-  }
-
-  if (error && students.length === 0) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center">
-        <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-600">
-            <WifiOff className="h-7 w-7" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold text-gray-900">Couldn&apos;t load students</h2>
-          <p className="mt-2 text-sm text-gray-500">Check your internet connection or try again.</p>
-          <button onClick={() => fetchStudents({ force: true })} className="mt-5 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
-            <RefreshCw className="mr-2 h-4 w-4" /> Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div><div className="mb-8 flex items-center justify-between"><div className="space-y-2"><div className="h-6 w-28 animate-pulse rounded bg-gray-200" /><div className="h-4 w-72 animate-pulse rounded bg-gray-100" /></div><div className="hidden h-10 w-32 animate-pulse rounded-md bg-gray-200 sm:block" /></div><TableSkeleton columns={6} rows={7} /></div>;
+  if (error && students.length === 0) return <div className="flex min-h-[420px] items-center justify-center"><div className="max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-600"><WifiOff className="h-7 w-7" /></div><h2 className="mt-4 text-lg font-semibold text-gray-900">Couldn&apos;t load students</h2><p className="mt-2 text-sm text-gray-500">Check your internet connection or try again.</p><button onClick={() => fetchStudents({ force: true })} className="mt-5 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"><RefreshCw className="mr-2 h-4 w-4" /> Retry</button></div></div>;
 
   const firstResult = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const lastResult = Math.min(currentPage * pageSize, total);
 
   return (
-    <div
-      className="w-full pb-4"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      style={{ touchAction: pulling ? "none" : "pan-y" }}
-    >
-      <div className="pointer-events-none fixed left-0 right-0 top-0 z-[120] flex justify-center sm:hidden" style={{ paddingTop: `calc(${Math.max(0, pullDistance - 30)}px + env(safe-area-inset-top))`, opacity: Math.min(1, pullDistance / 45) }} aria-hidden="true">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg">
-          <RefreshCw className={`h-4 w-4 text-blue-600 transition-transform ${pullDistance >= 54 ? "rotate-180" : ""} ${refreshing ? "animate-spin" : ""}`} />
-        </div>
-      </div>
+    <div className="w-full pb-4" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ touchAction: pulling ? "none" : "pan-y" }}>
+      <div className="pointer-events-none fixed left-0 right-0 top-0 z-[120] flex justify-center sm:hidden" style={{ paddingTop: `calc(${Math.max(0, pullDistance - 30)}px + env(safe-area-inset-top))`, opacity: Math.min(1, pullDistance / 45) }} aria-hidden="true"><div className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg"><RefreshCw className={`h-4 w-4 text-blue-600 transition-transform ${pullDistance >= 54 ? "rotate-180" : ""} ${refreshing ? "animate-spin" : ""}`} /></div></div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold text-gray-900">Students</h1>
-          <p className="mt-2 text-sm text-gray-700">A list of all the students in your coaching center.</p>
-        </div>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <div className="relative w-full sm:w-72">
-            <input type="search" inputMode="search" placeholder="Search name, roll, phone or batch..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="block min-h-11 w-full rounded-xl border border-gray-300 p-2.5 text-sm text-black shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-          </div>
-          <Link href="/dashboard/students/new" className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" /> Add Student
-          </Link>
+        <div className="min-w-0"><h1 className="text-xl font-semibold text-gray-900">Students</h1><p className="mt-2 text-sm text-gray-700">A list of all the students in your coaching center.</p></div>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row"><div className="relative w-full sm:w-72"><input type="search" inputMode="search" placeholder="Search name, roll, phone or batch..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="block min-h-11 w-full rounded-xl border border-gray-300 p-2.5 text-sm text-black shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></div><Link href="/dashboard/students/new" className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 sm:w-auto"><Plus className="mr-2 h-4 w-4" /> Add Student</Link></div>
+      </div>
+
+      <div className="mt-6 space-y-3 sm:hidden">
+        {students.map((student, index) => {
+          const displayPhoto = student.photoUrl || student.photo;
+          return (
+            <article key={student._id} className="overflow-hidden rounded-[24px] border border-slate-200/90 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+              <Link href={`/dashboard/students/${student._id}`} className="block active:scale-[0.995]">
+                <div className="flex items-center gap-3.5 p-4">
+                  <div className="relative shrink-0">
+                    {displayPhoto ? <img className="h-[68px] w-[68px] rounded-full border-4 border-white object-cover shadow-md ring-2 ring-slate-300" src={student.photoUrl ? `${student.photoUrl}?tr=w-160,h-160,f-webp,q-82` : displayPhoto} alt="" loading="lazy" decoding="async" /> : <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full border-4 border-white bg-blue-50 text-xl font-bold text-blue-700 shadow-md ring-2 ring-slate-300">{student.name?.charAt(0) || "S"}</div>}
+                    <span className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white ${student.status === "active" ? "bg-emerald-500" : "bg-slate-400"}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2"><div className="min-w-0"><h2 className="truncate text-lg font-bold tracking-tight text-slate-950">{student.name}</h2><p className="mt-0.5 text-sm text-slate-500">ID: #{student.rollNumber}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${student.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{student.status}</span></div>
+                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-600"><GraduationCap className="h-4 w-4 shrink-0 text-slate-500" /><span className="truncate">{student.batch?.name || "No batch"}</span><span className="text-slate-300">•</span><Phone className="h-3.5 w-3.5 shrink-0 text-slate-500" /><span className="truncate">{student.phone || "No phone"}</span></div>
+                  </div><ChevronRight className="h-5 w-5 shrink-0 text-slate-400" />
+                </div>
+              </Link>
+              <div className="grid grid-cols-3 border-t border-slate-100 bg-slate-50/70 p-2.5">
+                <Link href={`/dashboard/students/${student._id}`} className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold text-slate-700 active:bg-white"><Eye className="h-4 w-4" /> View</Link>
+                <Link href={`/dashboard/students/${student._id}/edit`} className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold text-blue-700 active:bg-blue-50"><Edit className="h-4 w-4" /> Edit</Link>
+                <button onClick={() => setDeleteId(student._id)} className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold text-red-600 active:bg-red-50"><Trash2 className="h-4 w-4" /> Delete</button>
+              </div>
+            </article>
+          );
+        })}
+        {students.length === 0 && <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">{searchQuery ? "No students match your search" : "No students found"}</div>}
+      </div>
+
+      <div className="mt-6 hidden overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 sm:block">
+        <div className="w-full overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[800px] table-fixed divide-y divide-gray-200"><colgroup><col className="w-[5%]" /><col className="w-[10%]" /><col className="w-[22%]" /><col className="w-[18%]" /><col className="w-[23%]" /><col className="w-[10%]" /><col className="w-[12%]" /></colgroup>
+            <thead className="bg-gray-50"><tr><th className="py-3.5 pl-4 pr-2 text-left text-xs font-semibold text-gray-500 sm:pl-6">#</th><th className="py-3.5 pr-3 text-left text-sm font-semibold text-gray-900">Roll No</th><th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th><th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Phone</th><th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Batch</th><th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th><th className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">Actions</span></th></tr></thead>
+            <tbody className="divide-y divide-gray-100 bg-white">{students.map((student, index) => <tr key={student._id} className="transition-colors hover:bg-gray-50/80"><td className="whitespace-nowrap py-4 pl-4 pr-2 text-sm text-gray-400 sm:pl-6">{(currentPage - 1) * pageSize + index + 1}</td><td className="whitespace-nowrap py-4 pr-3 text-sm font-medium text-gray-900">{student.rollNumber}</td><td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><div className="flex items-center"><div className="h-8 w-8 flex-shrink-0">{student.photoUrl ? <img className="h-8 w-8 rounded-full border object-cover" src={`${student.photoUrl}?tr=w-64,h-64,f-webp,q-80`} alt="" loading="lazy" decoding="async" /> : <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600">{student.name.charAt(0)}</div>}</div><div className="ml-3 truncate font-medium text-gray-900">{student.name}</div></div></td><td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{student.phone}</td><td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><div className="truncate">{student.batch?.name || "N/A"}</div></td><td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${student.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{student.status}</span></td><td className="relative whitespace-nowrap py-4 pl-2 pr-3 text-right text-sm font-medium sm:pl-3 sm:pr-6"><Link href={`/dashboard/students/${student._id}`} className="mr-0 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 sm:mr-1" aria-label={`View ${student.name}`}><Eye className="h-4 w-4" /></Link><Link href={`/dashboard/students/${student._id}/edit`} className="mr-0 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-900 sm:mr-1" aria-label={`Edit ${student.name}`}><Edit className="h-4 w-4" /></Link><button onClick={() => setDeleteId(student._id)} className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 hover:text-red-900" aria-label={`Delete ${student.name}`}><Trash2 className="h-4 w-4" /></button></td></tr>)}{students.length === 0 && <tr><td colSpan="7" className="py-14 text-center"><div className="mx-auto max-w-sm"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600"><Plus className="h-6 w-6" /></div><p className="mt-3 text-sm font-medium text-gray-900">{searchQuery ? "No students match your search" : "No students found"}</p><p className="mt-1 text-sm text-gray-500">{searchQuery ? "Try a different name, roll, phone, or batch." : "Create your first student to get started."}</p></div></td></tr>}</tbody>
+          </table>
         </div>
       </div>
 
-      <div className="mt-6 w-full overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 sm:mt-8">
-        <div className="w-full overflow-x-auto overscroll-x-contain">
-          <table className="w-full min-w-[800px] table-fixed divide-y divide-gray-200">
-            <colgroup>
-              <col className="w-[5%]" /><col className="w-[10%]" /><col className="w-[22%]" /><col className="w-[18%]" /><col className="w-[23%]" /><col className="w-[10%]" /><col className="w-[12%]" />
-            </colgroup>
-            <thead className="bg-gray-50"><tr>
-              <th className="py-3.5 pl-4 pr-2 text-left text-xs font-semibold text-gray-500 sm:pl-6">#</th>
-              <th className="py-3.5 pr-3 text-left text-sm font-semibold text-gray-900">Roll No</th>
-              <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-              <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Phone</th>
-              <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Batch</th>
-              <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-              <th className="relative py-3.5 pl-3 pr-4 sm:pr-6"><span className="sr-only">Actions</span></th>
-            </tr></thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
-              {students.map((student, index) => (
-                <tr key={student._id} className="transition-colors hover:bg-gray-50/80">
-                  <td className="whitespace-nowrap py-4 pl-4 pr-2 text-sm text-gray-400 sm:pl-6">{(currentPage - 1) * pageSize + index + 1}</td>
-                  <td className="whitespace-nowrap py-4 pr-3 text-sm font-medium text-gray-900">{student.rollNumber}</td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><div className="flex items-center"><div className="h-8 w-8 flex-shrink-0">{student.photoUrl ? <img className="h-8 w-8 rounded-full border object-cover" src={`${student.photoUrl}?tr=w-64,h-64,f-webp,q-80`} alt="" loading="lazy" decoding="async" /> : <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600">{student.name.charAt(0)}</div>}</div><div className="ml-3 truncate font-medium text-gray-900">{student.name}</div></div></td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{student.phone}</td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><div className="truncate">{student.batch?.name || "N/A"}</div></td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${student.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{student.status}</span></td>
-                  <td className="relative whitespace-nowrap py-4 pl-2 pr-3 text-right text-sm font-medium sm:pl-3 sm:pr-6"><Link href={`/dashboard/students/${student._id}`} className="mr-0 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 sm:mr-1" aria-label={`View ${student.name}`}><Eye className="h-4 w-4" /></Link><Link href={`/dashboard/students/${student._id}/edit`} className="mr-0 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-900 sm:mr-1" aria-label={`Edit ${student.name}`}><Edit className="h-4 w-4" /></Link><button onClick={() => setDeleteId(student._id)} className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 hover:text-red-900" aria-label={`Delete ${student.name}`}><Trash2 className="h-4 w-4" /></button></td>
-                </tr>
-              ))}
-              {students.length === 0 && <tr><td colSpan="7" className="py-14 text-center"><div className="mx-auto max-w-sm"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600"><Plus className="h-6 w-6" /></div><p className="mt-3 text-sm font-medium text-gray-900">{searchQuery ? "No students match your search" : "No students found"}</p><p className="mt-1 text-sm text-gray-500">{searchQuery ? "Try a different name, roll, phone, or batch." : "Create your first student to get started."}</p></div></td></tr>}
-            </tbody>
-          </table>
-          {total > 0 && <div className="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-gray-600">Showing {firstResult} to {lastResult} of {total} students</p><div className="flex items-center gap-2"><button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="min-h-10 rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Previous</button><span className="min-w-20 text-center text-sm text-gray-600">Page {currentPage} of {totalPages}</span><button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="min-h-10 rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Next</button></div></div>}
-        </div>
-      </div>
+      {total > 0 && <div className="mt-3 flex flex-col gap-3 border border-slate-200 bg-white px-4 py-3 shadow-sm sm:mt-0 sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:px-0 sm:shadow-none"><p className="text-sm text-gray-600">Showing {firstResult} to {lastResult} of {total} students</p><div className="flex items-center gap-2"><button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="min-h-10 rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Previous</button><span className="min-w-20 text-center text-sm text-gray-600">Page {currentPage} of {totalPages}</span><button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="min-h-10 rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">Next</button></div></div>}
       {refreshing && <div className="mt-2 flex items-center justify-end gap-1.5 text-xs text-gray-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating…</div>}
       <ConfirmDialog open={Boolean(deleteId)} title="Delete student?" message="This will permanently remove the student from the system." confirmLabel="Delete student" onCancel={() => setDeleteId(null)} onConfirm={handleDelete} />
     </div>
   );
 }
 
-export default function StudentsPage() {
-  return <Suspense fallback={<TableSkeleton columns={6} rows={7} />}><StudentsContent /></Suspense>;
-}
+export default function StudentsPage() { return <Suspense fallback={<TableSkeleton columns={6} rows={7} />}><StudentsContent /></Suspense>; }

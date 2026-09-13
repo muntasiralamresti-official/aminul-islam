@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Buffer } from 'node:buffer';
+import { execFileSync } from 'node:child_process';
 
 const IMAGEKIT_UPLOAD_URL = 'https://upload.imagekit.io/api/v1/files/upload';
 const FOLDER = '/students';
@@ -13,6 +14,30 @@ function parseDataUrl(dataUrl) {
   const extension = mimeType === 'image/jpeg' ? 'jpg' : mimeType.split('/')[1];
 
   return { mimeType, buffer, extension };
+}
+
+function loadEnvFile() {
+  if (process.env.MONGODB_URI && process.env.IMAGEKIT_PRIVATE_KEY) return;
+
+  try {
+    const output = execFileSync(process.platform === 'win32' ? 'cmd.exe' : 'sh',
+      process.platform === 'win32'
+        ? ['/c', 'type .env.local']
+        : ['-c', 'cat .env.local'],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+
+    for (const line of output.split(/\r?\n/)) {
+      const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/.exec(line);
+      if (!match || process.env[match[1]]) continue;
+      let value = match[2];
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      process.env[match[1]] = value;
+    }
+  } catch {
+    // The npm script normally supplies --env-file=.env.local on Node 20+.
+  }
 }
 
 async function uploadToImageKit({ buffer, mimeType, fileName }) {
@@ -43,13 +68,27 @@ async function uploadToImageKit({ buffer, mimeType, fileName }) {
 }
 
 async function main() {
+  loadEnvFile();
+
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error('MONGODB_URI is required.');
   if (!process.env.IMAGEKIT_PRIVATE_KEY) throw new Error('IMAGEKIT_PRIVATE_KEY is required.');
 
-  const connection = await mongoose.connect(uri);
-  const students = connection.connection.collection('students');
+  let connection;
+  try {
+    connection = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 15000,
+      family: 4,
+    });
+  } catch (error) {
+    throw new Error(
+      `MongoDB connection failed: ${error.message}. ` +
+      'MongoDB Compass may still connect while Node uses a different DNS path. ' +
+      'Try the migration again after closing VPN/proxy or switching DNS to 1.1.1.1/8.8.8.8.',
+    );
+  }
 
+  const students = connection.connection.collection('students');
   const records = await students.find(
     { photo: { $regex: /^data:image\/(jpeg|png|webp);base64,/ } },
     { projection: { _id: 1, name: 1, rollNumber: 1, photo: 1 } },
@@ -76,7 +115,6 @@ async function main() {
         fileName,
       });
 
-      // Keep the legacy base64 photo until upload and database update succeed.
       const updateResult = await students.updateOne(
         { _id: student._id },
         { $set: { photoUrl }, $unset: { photo: '' } },
@@ -91,7 +129,6 @@ async function main() {
     } catch (error) {
       failed += 1;
       console.error(`✗ ${student.name} (${student.rollNumber}): ${error.message}`);
-      // Never remove the old base64 photo when a migration step fails.
     }
   }
 

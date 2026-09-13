@@ -1,79 +1,108 @@
-import { NextResponse } from 'next/server';
-import connectMongo from '@/lib/db';
-import Student from '@/models/Student';
-import crypto from 'crypto';
+import { NextResponse } from "next/server";
+import connectMongo from "@/lib/db";
+import Student from "@/models/Student";
+import crypto from "crypto";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
-export async function GET() {
+const BATCH_SIZE = 3;
+
+export async function GET(request) {
   try {
-    await connectMongo();
-    
-    // Find students who have a non-empty `photo` (base64) AND empty `photoUrl`
-    const studentsToMigrate = await Student.find({
-      photo: { $ne: '' },
-      $or: [{ photoUrl: '' }, { photoUrl: { $exists: false } }]
-    });
-
-    if (studentsToMigrate.length === 0) {
-      return NextResponse.json({ message: 'No students need image migration.' });
-    }
-
     const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
     if (!privateKey) {
-      return NextResponse.json({ error: 'IMAGEKIT_PRIVATE_KEY missing' }, { status: 500 });
+      return NextResponse.json(
+        { error: "ImageKit is not configured. Add IMAGEKIT_PRIVATE_KEY in Vercel Environment Variables." },
+        { status: 500 },
+      );
+    }
+
+    await connectMongo();
+
+    // Process only a few images per request so Vercel does not time out.
+    // The old `photo` field is removed only after ImageKit upload + DB update succeed.
+    const students = await Student.find({
+      photo: { $type: "string", $ne: "" },
+      $or: [{ photoUrl: "" }, { photoUrl: { $exists: false } }],
+    })
+      .select("_id name roll photo photoUrl")
+      .sort({ _id: 1 })
+      .limit(BATCH_SIZE)
+      .lean();
+
+    if (students.length === 0) {
+      return NextResponse.json({
+        message: "No students need image migration.",
+        processed: 0,
+        successCount: 0,
+        failCount: 0,
+        remainingCount: 0,
+        done: true,
+      });
     }
 
     let successCount = 0;
     let failCount = 0;
+    const failures = [];
 
-    for (const student of studentsToMigrate) {
+    const authHeader = "Basic " + Buffer.from(`${privateKey}:`).toString("base64");
+
+    for (const student of students) {
       try {
-        // student.photo contains base64 string, e.g., "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
-        let base64Data = student.photo;
-        
         const formData = new FormData();
-        formData.append('file', base64Data);
-        formData.append('fileName', `student-${crypto.randomUUID()}.jpg`);
-        formData.append('folder', '/students');
-        formData.append('useUniqueFileName', 'true');
+        formData.append("file", student.photo);
+        formData.append("fileName", `student-${student._id}-${crypto.randomUUID()}.jpg`);
+        formData.append("folder", "/students");
+        formData.append("useUniqueFileName", "true");
 
-        const authHeader = 'Basic ' + Buffer.from(privateKey + ':').toString('base64');
-
-        const uploadRes = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': authHeader
-          },
-          body: formData
+        const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+          method: "POST",
+          headers: { Authorization: authHeader },
+          body: formData,
         });
 
         const uploadData = await uploadRes.json();
-        
-        if (uploadRes.ok && uploadData.url) {
-          student.photoUrl = uploadData.url;
-          student.photo = ''; // Clear base64 data to save DB space
-          await student.save();
-          successCount++;
-        } else {
-          console.error(`Failed to upload for student ${student._id}:`, uploadData);
+
+        if (!uploadRes.ok || !uploadData.url) {
+          console.error(`ImageKit migration failed for ${student._id}:`, uploadData);
           failCount++;
+          failures.push(student._id.toString());
+          continue;
         }
-      } catch (err) {
-        console.error(`Error migrating student ${student._id}:`, err);
+
+        // Only clear the legacy base64 photo after the ImageKit URL is saved.
+        await Student.updateOne(
+          { _id: student._id, photo: student.photo },
+          { $set: { photoUrl: uploadData.url }, $unset: { photo: 1 } },
+        );
+        successCount++;
+      } catch (error) {
+        console.error(`Migration error for ${student._id}:`, error);
         failCount++;
+        failures.push(student._id.toString());
       }
     }
 
-    return NextResponse.json({
-      message: 'Migration complete',
-      totalFound: studentsToMigrate.length,
-      successCount,
-      failCount
+    const remainingCount = await Student.countDocuments({
+      photo: { $type: "string", $ne: "" },
+      $or: [{ photoUrl: "" }, { photoUrl: { $exists: false } }],
     });
 
+    return NextResponse.json({
+      message: remainingCount > 0 ? "Migration batch complete" : "Migration complete",
+      processed: students.length,
+      successCount,
+      failCount,
+      failures,
+      remainingCount,
+      done: remainingCount === 0,
+    });
   } catch (error) {
-    console.error('Migration error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Migration error:", error);
+    return NextResponse.json(
+      { error: "Image migration failed. Please try again." },
+      { status: 500 },
+    );
   }
 }

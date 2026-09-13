@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Users, CreditCard, AlertCircle, CheckCircle2, XCircle, CalendarCheck, WalletCards, Activity, GraduationCap } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 
 const DASHBOARD_CACHE_KEY = 'aminul-islam-dashboard-cache';
@@ -96,6 +95,47 @@ function GreetingSticker() {
   );
 }
 
+function MonthlyFinancialChart({ data }) {
+  const maxAmount = Math.max(...data.map((item) => Number(item.amount) || 0), 1);
+
+  return (
+    <div className="mt-5">
+      <div className="relative h-64 rounded-xl bg-gray-50/70 px-3 pt-4 ring-1 ring-gray-100 sm:h-72 sm:px-6">
+        <div className="pointer-events-none absolute inset-x-3 top-4 bottom-10 flex flex-col justify-between sm:inset-x-6">
+          {[0, 1, 2, 3].map((line) => <div key={line} className="border-t border-dashed border-gray-200" />)}
+        </div>
+        <div className="relative flex h-full items-end justify-around gap-3 pb-9 sm:gap-8">
+          {data.map((item) => {
+            const amount = Number(item.amount) || 0;
+            const height = amount > 0 ? Math.max((amount / maxAmount) * 100, 5) : 0;
+            const isExpected = item.name === 'Expected';
+            const isCollected = item.name === 'Collected';
+            return (
+              <div key={item.name} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
+                <div className="mb-2 max-w-full truncate text-center text-xs font-bold text-gray-700 sm:text-sm">৳{amount.toLocaleString('en-BD')}</div>
+                <div className="flex h-[calc(100%-2.25rem)] w-full max-w-20 items-end justify-center sm:max-w-28">
+                  <div className="relative h-full w-10 overflow-hidden rounded-t-xl bg-gray-200/80 sm:w-14">
+                    <div
+                      className={`absolute inset-x-0 bottom-0 rounded-t-xl transition-all duration-500 ${isExpected ? 'bg-blue-500' : isCollected ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                      style={{ height: `${height}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="mt-2 truncate text-center text-xs font-semibold text-gray-500 sm:text-sm">{item.name}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-medium text-gray-500 sm:text-xs">
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Expected</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Collected</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Due</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { data: session } = useSession();
   const [stats, setStats] = useState(null);
@@ -166,7 +206,7 @@ export default function Dashboard() {
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         <div className="dashboard-panel rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6 lg:col-span-2">
           <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold tracking-tight text-gray-900">Monthly Financial</h2><p className="mt-1 text-sm text-gray-500">{stats.currentMonth} — Expected vs collected vs due</p></div><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400"><CreditCard className="h-5 w-5" /></div></div>
-          <div className="mt-5 h-72 w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={financialData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `৳${value}`} /><Tooltip formatter={(value) => [`৳${Number(value).toLocaleString()}`, 'Amount']} /><Bar dataKey="amount" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveContainer></div>
+          <MonthlyFinancialChart data={financialData} />
         </div>
 
         <div className="dashboard-panel rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">

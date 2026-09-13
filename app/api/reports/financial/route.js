@@ -12,8 +12,8 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const year = parseInt(searchParams.get('year')) || new Date().getFullYear();
 
-    const students = await Student.find({ status: 'active' }).select('monthlyFee');
-    const setting = await Setting.findOne();
+    const students = await Student.find({ status: 'active' }).select('monthlyFee').lean();
+    const setting = await Setting.findOne().lean();
     const defaultFee = setting?.defaultFee ?? 1000;
 
     // Every active student's own monthly fee contributes to the expected amount.

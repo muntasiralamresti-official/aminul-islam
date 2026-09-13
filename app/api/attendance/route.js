@@ -4,6 +4,8 @@ import Attendance from '@/models/Attendance';
 import Student from '@/models/Student';
 import Batch from '@/models/Batch';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     await connectMongo();
@@ -19,7 +21,8 @@ export async function GET(request) {
     date.setHours(0, 0, 0, 0);
 
     const attendance = await Attendance.findOne({ batch: batchId, date })
-      .populate('records.student', 'name rollNumber');
+      .populate('records.student', 'name rollNumber')
+      .lean();
 
     if (!attendance) {
       // Include legacy students where status is missing, while excluding explicitly inactive students.

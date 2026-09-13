@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import connectMongo from "@/lib/db";
 import Setting from "@/models/Setting";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     await connectMongo();

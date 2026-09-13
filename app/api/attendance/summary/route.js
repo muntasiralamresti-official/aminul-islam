@@ -32,7 +32,7 @@ export async function GET(request) {
         batch: batchId,
         status: { $ne: 'inactive' },
       })
-        .select('name rollNumber photo')
+        .select('name rollNumber photoUrl')
         .sort({ rollNumber: 1, _id: 1 })
         .lean(),
       Attendance.find({

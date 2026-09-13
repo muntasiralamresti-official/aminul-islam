@@ -3,16 +3,20 @@
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
 
+function triggerRecordPayment() {
+  const button = Array.from(document.querySelectorAll("button")).find((item) => {
+    const text = item.textContent?.replace(/\s+/g, " ").trim() || "";
+    return text.includes("Record Payment") && !item.classList.contains("fees-record-payment-mobile");
+  });
+  if (button) button.click();
+}
+
 function MobileRecordPaymentButton() {
   useEffect(() => {
-    const clickExistingButton = () => {
-      const button = Array.from(document.querySelectorAll("button")).find((item) => item.textContent?.replace(/\s+/g, " ").trim().includes("Record Payment"));
-      if (button) button.click();
-    };
     const handleKey = (event) => {
-      if (event.key === "r" && (event.ctrlKey || event.metaKey)) {
+      if (event.key.toLowerCase() === "r" && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
-        clickExistingButton();
+        triggerRecordPayment();
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -22,11 +26,8 @@ function MobileRecordPaymentButton() {
   return (
     <button
       type="button"
-      onClick={() => {
-        const button = Array.from(document.querySelectorAll("button")).find((item) => item.textContent?.replace(/\s+/g, " ").trim().includes("Record Payment"));
-        if (button) button.click();
-      }}
-      className="fees-record-payment-mobile fixed z-[70] hidden items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(37,99,235,.32)] active:scale-[.98]"
+      onClick={triggerRecordPayment}
+      className="fees-record-payment-mobile fixed z-[999] flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_14px_34px_rgba(37,99,235,.35)] transition active:scale-[.98] sm:hidden"
       aria-label="Record payment"
     >
       <Plus className="h-5 w-5" />
@@ -43,63 +44,55 @@ export default function FeesLayout({ children }) {
       <style jsx global>{`
         @media (max-width: 639px) {
           .fees-record-payment-mobile {
-            display: inline-flex !important;
+            left: 1rem;
             right: 1rem;
-            bottom: calc(4.9rem + env(safe-area-inset-bottom));
+            bottom: calc(4.85rem + env(safe-area-inset-bottom));
+            width: calc(100% - 2rem);
+            min-height: 52px;
           }
 
-          /* Modern student fee cards */
+          /* Student-wise fee table -> compact app cards */
           main .overflow-x-auto:has(table thead th:nth-child(10)) {
             overflow: visible !important;
             padding: .25rem !important;
-            background: #f8fafc;
+            background: transparent !important;
           }
-          main .overflow-x-auto:has(table thead th:nth-child(10)) table {
-            display: block !important;
-            width: 100% !important;
-            min-width: 0 !important;
-          }
-          main .overflow-x-auto:has(table thead th:nth-child(10)) thead {
-            display: none !important;
-          }
-          main .overflow-x-auto:has(table thead th:nth-child(10)) tbody {
-            display: grid !important;
-            gap: .85rem !important;
-          }
+          main .overflow-x-auto:has(table thead th:nth-child(10)) table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          main .overflow-x-auto:has(table thead th:nth-child(10)) thead { display: none !important; }
+          main .overflow-x-auto:has(table thead th:nth-child(10)) tbody { display: grid !important; gap: .75rem !important; }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody tr {
             display: grid !important;
             grid-template-columns: 1fr 1fr;
             overflow: hidden;
             border: 1px solid #e2e8f0 !important;
-            border-radius: 1.35rem !important;
+            border-radius: 22px !important;
             background: #fff !important;
-            box-shadow: 0 10px 30px rgba(15,23,42,.07) !important;
+            box-shadow: 0 10px 28px rgba(15,23,42,.07) !important;
           }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td {
             display: flex !important;
             align-items: center;
             justify-content: space-between;
-            gap: .75rem;
+            gap: .6rem;
             min-width: 0;
-            padding: .72rem .9rem !important;
+            padding: .8rem .9rem !important;
             border-bottom: 1px solid #eef2f7 !important;
             white-space: normal !important;
           }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td::before {
             color: #94a3b8;
-            font-size: .59rem;
+            font-size: .58rem;
             font-weight: 800;
-            letter-spacing: .07em;
+            letter-spacing: .06em;
             text-transform: uppercase;
           }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(1) { display: none !important; }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(2) {
             grid-column: 1 / -1;
             justify-content: flex-start;
-            min-height: 4.7rem;
+            min-height: 70px;
             padding: 1rem !important;
-            background: linear-gradient(135deg,#f8fbff,#fff) !important;
-            border-bottom: 1px solid #eef2f7 !important;
+            background: linear-gradient(135deg,#eff6ff,#ffffff) !important;
           }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(2)::before { display: none; }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(2) > div > div:first-child { font-size: 1rem; font-weight: 800; color: #0f172a; }
@@ -113,38 +106,17 @@ export default function FeesLayout({ children }) {
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(8) { grid-column: 1 / -1; }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(8)::before { content: "Last Payment"; }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(9)::before { content: "Last Amount"; }
-          main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(10) { grid-column: 1 / -1; justify-content: flex-start; gap: .75rem; border-bottom: 0 !important; }
+          main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(10) { grid-column: 1 / -1; justify-content: flex-start; border-bottom: 0 !important; }
           main .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(10)::before { content: "Status"; }
 
-          /* Modern payment-history cards */
-          main .overflow-x-auto:has(table thead th:nth-child(7)) {
-            overflow: visible !important;
-            padding: .25rem !important;
-            background: #f8fafc;
-          }
-          main .overflow-x-auto:has(table thead th:nth-child(7)) table {
-            display: block !important;
-            width: 100% !important;
-            min-width: 0 !important;
-          }
+          /* Payment history -> clean stacked cards */
+          main .overflow-x-auto:has(table thead th:nth-child(7)) { overflow: visible !important; padding: .25rem !important; background: transparent !important; }
+          main .overflow-x-auto:has(table thead th:nth-child(7)) table { display: block !important; width: 100% !important; min-width: 0 !important; }
           main .overflow-x-auto:has(table thead th:nth-child(7)) thead { display: none !important; }
-          main .overflow-x-auto:has(table thead th:nth-child(7)) tbody { display: grid !important; gap: .75rem !important; }
-          main .overflow-x-auto:has(table thead th:nth-child(7)) tbody tr {
-            display: grid !important;
-            grid-template-columns: 1fr auto;
-            overflow: hidden;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 1.25rem !important;
-            background: #fff !important;
-            box-shadow: 0 8px 24px rgba(15,23,42,.06) !important;
-          }
-          main .overflow-x-auto:has(table thead th:nth-child(7)) tbody td {
-            display: flex !important;
-            align-items: center;
-            padding: .75rem .9rem !important;
-            border-bottom: 1px solid #f1f5f9 !important;
-          }
-          main .overflow-x-auto:has(table thead th:nth-child(7)) tbody td::before { color:#94a3b8; font-size:.58rem; font-weight:800; text-transform:uppercase; margin-right:.65rem; }
+          main .overflow-x-auto:has(table thead th:nth-child(7)) tbody { display: grid !important; gap: .7rem !important; }
+          main .overflow-x-auto:has(table thead th:nth-child(7)) tbody tr { display: grid !important; grid-template-columns: 1fr auto; overflow: hidden; border: 1px solid #e2e8f0 !important; border-radius: 20px !important; background: #fff !important; box-shadow: 0 8px 24px rgba(15,23,42,.06) !important; }
+          main .overflow-x-auto:has(table thead th:nth-child(7)) tbody td { display: flex !important; align-items: center; padding: .75rem .9rem !important; border-bottom: 1px solid #f1f5f9 !important; }
+          main .overflow-x-auto:has(table thead th:nth-child(7)) tbody td::before { color:#94a3b8; font-size:.58rem; font-weight:800; text-transform:uppercase; margin-right:.6rem; }
           main .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(1) { grid-column: 1 / -1; }
           main .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(1)::before { content:"Date"; }
           main .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(2) { grid-column: 1 / -1; }

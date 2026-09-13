@@ -29,6 +29,24 @@ table { min-width:640px; }
 @media (max-width:640px) {
   button,a { touch-action:manipulation; }
   input,select,textarea { font-size:16px; }
+  .page-transition { padding-bottom:.5rem; }
+  .page-transition .rounded-xl { border-radius:1rem; }
+  .page-transition .rounded-2xl { border-radius:1.15rem; }
+
+  /* Native mobile surfaces: reduce the visual language of desktop web panels. */
+  .page-transition > .space-y-6 > section.rounded-xl,
+  .page-transition > .space-y-6 > div.rounded-xl,
+  .page-transition > .space-y-6 > div.rounded-2xl { border-radius:1.15rem; box-shadow:0 5px 22px rgba(15,23,42,.055); }
+  .page-transition h1 { letter-spacing:-.025em; }
+  .page-transition h2 { letter-spacing:-.015em; }
+  .page-transition input,
+  .page-transition select,
+  .page-transition textarea { min-height:46px; border-radius:.85rem; }
+  .page-transition button:not(.native-tab),
+  .page-transition a:not(.native-tab) { border-radius:.85rem; }
+  .page-transition .shadow-sm { box-shadow:0 4px 18px rgba(15,23,42,.055); }
+
+  /* Lists become stacked app cards instead of compressed tables. */
   .overflow-x-auto:has(table) { overflow:visible; }
   .overflow-x-auto:has(table) table { display:block; width:100%!important; min-width:0!important; table-layout:auto!important; border-collapse:separate; border-spacing:0; }
   .overflow-x-auto:has(table) thead { display:none; }
@@ -63,9 +81,7 @@ table { min-width:640px; }
   .overflow-x-auto:has(table) tbody td[colspan] { display:block; grid-column:1 / -1; padding:2rem 1rem; border-bottom:0; text-align:center; }
   .overflow-x-auto:has(table) tbody td:last-child a,.overflow-x-auto:has(table) tbody td:last-child button { min-height:42px; min-width:42px; border-radius:.75rem; }
   .overflow-x-auto:has(table) colgroup,.overflow-x-auto:has(table) col { width:auto!important; }
-  .page-transition { padding-bottom:.5rem; }
-  .page-transition .rounded-xl { border-radius:1rem; }
-  .page-transition .rounded-2xl { border-radius:1.15rem; }
+
   .ui-bottom-sheet-shell { align-items:flex-end!important; padding:0!important; }
   .ui-bottom-sheet { width:100%; max-width:none!important; max-height:min(88dvh,760px); overflow-y:auto; border-radius:1.4rem 1.4rem 0 0!important; padding-bottom:env(safe-area-inset-bottom); }
   .fixed.inset-0[role="dialog"]:has(form) { align-items:flex-end!important; padding:0!important; overflow:hidden!important; }

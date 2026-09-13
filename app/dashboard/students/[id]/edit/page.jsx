@@ -57,10 +57,11 @@ export default function EditStudentPage({ params }) {
       let photoUrl = formData.photoUrl;
       if (photoFile) photoUrl = await uploadStudentPhoto(photoFile);
 
+      const { photo, ...studentFields } = formData;
       const res = await fetch(`/api/students/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, photoUrl }),
+        body: JSON.stringify({ ...studentFields, photoUrl }),
       });
 
       if (res.ok) {

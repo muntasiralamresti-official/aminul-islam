@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate:student-photos": "node --env-file=.env.local scripts/migrate-student-photos.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

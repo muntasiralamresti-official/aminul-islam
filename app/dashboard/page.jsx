@@ -69,35 +69,21 @@ function getGreeting() {
 function GreetingSticker() {
   const greeting = getGreeting();
   return (
-    <div className={`teacher-greeting teacher-greeting-${greeting.tone} mb-5 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 via-white to-indigo-50 ring-1 ring-blue-100 shadow-sm`}>
-      <style jsx>{`
-        .greeting-mascot { animation: mascot-float 2.8s ease-in-out infinite; will-change: transform; }
-        .greeting-arm { transform-origin: 100% 50%; animation: mascot-wave 1.05s cubic-bezier(.4,0,.2,1) infinite; will-change: transform; }
-        .greeting-sparkle { animation: sparkle-pop 1.5s ease-in-out infinite; will-change: transform, opacity; }
-        .greeting-sparkle-delay { animation-delay: .4s; }
-        .greeting-cap { animation: cap-bob 2.8s ease-in-out infinite; }
-        @keyframes mascot-float { 0%,100% { transform: translateY(1px) rotate(-1deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
-        @keyframes mascot-wave { 0%,100% { transform: rotate(28deg); } 50% { transform: rotate(-28deg); } }
-        @keyframes sparkle-pop { 0%,100% { opacity: .3; transform: scale(.65) rotate(0deg); } 50% { opacity: 1; transform: scale(1.3) rotate(18deg); } }
-        @keyframes cap-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-        @media (prefers-reduced-motion: reduce) {
-          .greeting-mascot, .greeting-arm, .greeting-sparkle, .greeting-cap { animation: none; }
-        }
-      `}</style>
+    <div className="mb-5 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 via-white to-indigo-50 ring-1 ring-blue-100 shadow-sm">
       <div className="flex min-h-[104px] items-center gap-4 px-4 py-3 sm:min-h-[120px] sm:px-6 sm:py-4">
         <div className="relative flex h-20 w-24 shrink-0 items-center justify-center sm:h-24 sm:w-28" aria-hidden="true">
-          <div className="greeting-mascot relative h-[76px] w-[76px] sm:h-[88px] sm:w-[88px]">
-            <div className="greeting-cap absolute left-[22px] top-[-1px] h-[10px] w-[38px] rounded-t-full bg-slate-800 shadow-sm sm:left-[26px] sm:h-[11px] sm:w-[44px]" />
+          <div className="relative h-[76px] w-[76px] motion-safe:animate-bounce sm:h-[88px] sm:w-[88px]" style={{ animationDuration: '2.8s' }}>
+            <div className="absolute left-[22px] top-[-1px] h-[10px] w-[38px] rounded-t-full bg-slate-800 shadow-sm sm:left-[26px] sm:h-[11px] sm:w-[44px]" />
             <div className="absolute left-[7px] top-[9px] h-[56px] w-[62px] rounded-[48%] bg-white shadow-[0_8px_20px_rgba(59,130,246,.16)] ring-1 ring-blue-100 sm:left-[8px] sm:top-[10px] sm:h-[64px] sm:w-[72px]">
               <span className="absolute left-[19px] top-[25px] h-2 w-2 rounded-full bg-slate-700 sm:left-[23px] sm:top-[28px]" />
               <span className="absolute right-[19px] top-[25px] h-2 w-2 rounded-full bg-slate-700 sm:right-[23px] sm:top-[28px]" />
               <span className="absolute left-1/2 top-[36px] h-2 w-4 -translate-x-1/2 rounded-b-full border-b-2 border-blue-400 sm:top-[41px]" />
             </div>
             <div className="absolute bottom-0 left-[20px] h-[30px] w-[50px] rounded-t-[18px] rounded-b-[12px] bg-blue-500 shadow-sm sm:left-[22px] sm:h-[34px] sm:w-[56px]" />
-            <div className="greeting-arm absolute right-[-4px] top-[19px] h-[24px] w-[34px] rounded-full bg-blue-400 shadow-sm sm:right-[-7px] sm:top-[21px] sm:h-[28px] sm:w-[40px]" />
+            <div className="motion-safe:animate-pulse absolute right-[-4px] top-[19px] h-[24px] w-[34px] origin-right rounded-full bg-blue-400 shadow-sm sm:right-[-7px] sm:top-[21px] sm:h-[28px] sm:w-[40px]" style={{ animationDuration: '1.05s' }} />
             <div className="absolute right-[-13px] top-[10px] h-[19px] w-[19px] rounded-[45%_55%_50%_45%] bg-blue-300 shadow-sm sm:right-[-17px] sm:top-[11px] sm:h-[22px] sm:w-[22px]" />
-            <span className="greeting-sparkle absolute right-[-9px] top-[-4px] text-xl font-black text-amber-400">✦</span>
-            <span className="greeting-sparkle greeting-sparkle-delay absolute left-[-6px] top-[2px] text-sm font-black text-blue-400">✦</span>
+            <span className="motion-safe:animate-pulse absolute right-[-9px] top-[-4px] text-xl font-black text-amber-400">✦</span>
+            <span className="motion-safe:animate-pulse absolute left-[-6px] top-[2px] text-sm font-black text-blue-400" style={{ animationDelay: '0.4s' }}>✦</span>
           </div>
         </div>
         <div className="min-w-0">

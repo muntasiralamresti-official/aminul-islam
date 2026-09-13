@@ -98,6 +98,26 @@ export default function SettingsPage() {
     }
   };
 
+  const [migrating, setMigrating] = useState(false);
+  const handleMigrateImages = async () => {
+    if (!confirm("Are you sure? This will migrate all old student photos to ImageKit.")) return;
+    setMigrating(true);
+    const tId = toast.loading("Migrating images to ImageKit... Please wait.");
+    try {
+      const res = await fetch("/api/migrate-images");
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Migration complete! Migrated: ${data.successCount}, Failed: ${data.failCount}`, { id: tId });
+      } else {
+        throw new Error(data.error || "Failed to migrate");
+      }
+    } catch (error) {
+      toast.error(error.message || "Migration failed", { id: tId });
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   if (loading) return <div className="p-4">Loading settings...</div>;
 
   return (
@@ -268,6 +288,26 @@ export default function SettingsPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 max-w-2xl mt-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+          System Maintenance
+        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4">
+          <div>
+            <p className="text-sm font-medium text-gray-900">Migrate Old Images</p>
+            <p className="text-sm text-gray-500">Move all old student photos from database to ImageKit for faster loading.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleMigrateImages}
+            disabled={migrating}
+            className="mt-3 sm:mt-0 bg-indigo-600 text-white px-4 py-2 rounded shadow-sm hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
+          >
+            {migrating ? "Migrating..." : "Run Migration"}
+          </button>
+        </div>
       </div>
     </div>
   );

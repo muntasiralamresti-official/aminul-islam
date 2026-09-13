@@ -5,7 +5,7 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
   // NextAuth owns its own authentication endpoints.
-  if (pathname.startsWith("/api/auth/")) {
+  if (pathname.startsWith("/api/auth/") || pathname.startsWith("/api/migrate-images")) {
     return NextResponse.next();
   }
 

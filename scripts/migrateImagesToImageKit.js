@@ -12,7 +12,7 @@ const StudentSchema = new mongoose.Schema(
 const Student = mongoose.models.Student || mongoose.model('Student', StudentSchema);
 
 async function run() {
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(process.env.MONGODB_URI, { family: 4 });
   console.log('Connected to MongoDB');
 
   const students = await Student.find({ photo: { $ne: '' } });

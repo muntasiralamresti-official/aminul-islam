@@ -1,7 +1,6 @@
-const CACHE_NAME = 'aminul-islam-v4';
+const CACHE_NAME = 'aminul-islam-v5';
 const OFFLINE_URL = '/offline.html';
 const NAVIGATION_TIMEOUT = 10000;
-const API_TIMEOUT = 15000;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -31,12 +30,10 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/api/auth/')) return;
 
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request, API_TIMEOUT));
-    return;
-  }
+  // Never cache application APIs. API responses contain live/authenticated
+  // data and must not become stale or survive a session change.
+  if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(networkFirst(request, NAVIGATION_TIMEOUT));
@@ -62,18 +59,14 @@ async function networkFirst(request, timeoutMs) {
 
   try {
     const response = await fetchWithTimeout(request, timeoutMs);
-    if (response.ok) {
-      await cache.put(request, response.clone());
-    }
+    if (response.ok) await cache.put(request, response.clone());
     return response;
   } catch (error) {
     const cached = await cache.match(request);
     if (cached) return cached;
 
-    if (request.mode === 'navigate') {
-      const offlinePage = await cache.match(OFFLINE_URL);
-      if (offlinePage) return offlinePage;
-    }
+    const offlinePage = await cache.match(OFFLINE_URL);
+    if (offlinePage) return offlinePage;
 
     throw error;
   }

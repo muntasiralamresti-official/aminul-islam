@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aminul-islam-v5';
+const CACHE_NAME = 'aminul-islam-v6';
 const OFFLINE_URL = '/offline.html';
 const NAVIGATION_TIMEOUT = 10000;
 
@@ -31,53 +31,38 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never cache application APIs. API responses contain live/authenticated
-  // data and must not become stale or survive a session change.
+  // Application APIs must always go directly to the network. Never let the
+  // service worker turn an API/network failure into a stale or fake response.
   if (url.pathname.startsWith('/api/')) return;
 
-  if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, NAVIGATION_TIMEOUT));
-    return;
-  }
+  // Let Next.js and the browser handle document navigation directly. The
+  // service worker should never replace a failed page request with an offline
+  // page while the app is online, because that can make the UI appear frozen.
+  if (request.mode === 'navigate') return;
 
+  // Cache only explicitly safe static assets. Failed static requests should
+  // propagate normally rather than creating an unhandled promise in the SW.
   event.respondWith(cacheFirst(request));
 });
-
-async function fetchWithTimeout(request, timeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(request, { signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function networkFirst(request, timeoutMs) {
-  const cache = await caches.open(CACHE_NAME);
-
-  try {
-    const response = await fetchWithTimeout(request, timeoutMs);
-    if (response.ok) await cache.put(request, response.clone());
-    return response;
-  } catch (error) {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-
-    const offlinePage = await cache.match(OFFLINE_URL);
-    if (offlinePage) return offlinePage;
-
-    throw error;
-  }
-}
 
 async function cacheFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
   if (cached) return cached;
 
-  const response = await fetch(request);
-  if (response.ok) await cache.put(request, response.clone());
-  return response;
+  try {
+    const response = await fetch(request);
+    if (response.ok && response.type !== 'opaque') {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    // No cached response exists. Return a normal failed fetch response to the
+    // browser instead of throwing from an unhandled service-worker promise.
+    return new Response('', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
 }

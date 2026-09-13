@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 
 const IMAGEKIT_UPLOAD_URL = 'https://upload.imagekit.io/api/v1/files/upload';
 const FOLDER = '/students';
+const NSLOOKUP_TIMEOUT_MS = 8000;
 
 function parseDataUrl(dataUrl) {
   const match = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/s.exec(dataUrl || '');
@@ -42,6 +43,8 @@ function loadEnvFile() {
 function runNslookup(args) {
   return execFileSync('nslookup', args, {
     encoding: 'utf8',
+    timeout: NSLOOKUP_TIMEOUT_MS,
+    windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
@@ -52,29 +55,25 @@ function buildNonSrvUri(srvUri) {
 
   const [, credentials, srvHost, dbPath = '', originalQuery = ''] = match;
 
-  const srvOutput = runNslookup(['-type=SRV', `_mongodb._tcp.${srvHost}`]);
+  let srvOutput;
+  try {
+    srvOutput = runNslookup(['-type=SRV', `_mongodb._tcp.${srvHost}`]);
+  } catch (error) {
+    throw new Error(`Windows nslookup could not resolve MongoDB Atlas SRV records within ${NSLOOKUP_TIMEOUT_MS / 1000}s.`);
+  }
+
   const hosts = [...srvOutput.matchAll(/svr hostname\s*=\s*([^\s\r\n]+)/gi)]
     .map((item) => item[1].replace(/\.$/, ''));
 
   if (!hosts.length) throw new Error('Could not resolve MongoDB Atlas SRV hosts with nslookup.');
 
-  let txtOptions = '';
-  try {
-    const txtOutput = runNslookup(['-type=TXT', srvHost]);
-    const txtParts = [...txtOutput.matchAll(/text\s*=\s*"([^"]*)"/gi)].map((item) => item[1]);
-    txtOptions = txtParts.join('');
-  } catch {
-    // TXT is optional; Atlas normally provides replicaSet/authSource here.
-  }
-
+  // We intentionally do not query the optional DNS TXT record here because
+  // some Windows DNS resolvers can hang on TXT lookups. Atlas accepts a
+  // normal multi-host TLS connection; authSource=admin is the safe default
+  // for Atlas database users.
   const query = new URLSearchParams(originalQuery.replace(/^\?/, ''));
-  if (txtOptions) {
-    for (const part of txtOptions.split('&')) {
-      const [key, ...valueParts] = part.split('=');
-      if (key && !query.has(key)) query.set(key, valueParts.join('='));
-    }
-  }
   query.set('tls', 'true');
+  if (!query.has('authSource')) query.set('authSource', 'admin');
 
   return `mongodb://${credentials}@${hosts.join(',')}${dbPath}?${query.toString()}`;
 }
@@ -92,7 +91,6 @@ async function connectMongo(uri) {
 
     console.warn('⚠ MongoDB SRV lookup failed in Node. Falling back to Windows nslookup resolution...');
     const fallbackUri = buildNonSrvUri(uri);
-    if (!fallbackUri) throw error;
 
     return mongoose.connect(fallbackUri, {
       serverSelectionTimeoutMS: 15000,

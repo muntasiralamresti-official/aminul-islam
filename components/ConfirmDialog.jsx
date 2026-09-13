@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
 
 const haptic = (duration = 8) => {
@@ -58,13 +59,13 @@ export default function ConfirmDialog({
     setDragY(0);
   };
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
-    <div className="ui-bottom-sheet-shell fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+  return createPortal(
+    <div className="ui-bottom-sheet-shell fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
       <button type="button" className="ui-bottom-sheet-backdrop absolute inset-0 bg-gray-950/45 backdrop-blur-[2px]" aria-label="Close" onClick={onCancel} />
       <div
-        className="ui-bottom-sheet relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
+        className="ui-bottom-sheet relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
         style={{ transform: dragY ? `translateY(${dragY}px)` : undefined, transition: dragging ? 'none' : undefined }}
       >
         <div
@@ -79,7 +80,7 @@ export default function ConfirmDialog({
         <button type="button" onClick={onCancel} className="absolute right-3 top-3 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700" aria-label="Close dialog">
           <X className="h-5 w-5" />
         </button>
-        <div className="px-6 pb-6 pt-3 sm:p-7">
+        <div className="overflow-y-auto px-6 pb-6 pt-3 sm:max-h-[calc(100dvh-9rem)] sm:p-7">
           <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${danger ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
             <AlertTriangle className="h-6 w-6" />
           </div>
@@ -91,6 +92,7 @@ export default function ConfirmDialog({
           <button type="button" onClick={() => { haptic(12); onConfirm?.(); }} className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>{resolvedConfirmLabel}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

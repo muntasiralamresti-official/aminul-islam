@@ -12,7 +12,6 @@ function parseDataUrl(dataUrl) {
   const mimeType = match[1];
   const buffer = Buffer.from(match[2], 'base64');
   const extension = mimeType === 'image/jpeg' ? 'jpg' : mimeType.split('/')[1];
-
   return { mimeType, buffer, extension };
 }
 
@@ -20,11 +19,11 @@ function loadEnvFile() {
   if (process.env.MONGODB_URI && process.env.IMAGEKIT_PRIVATE_KEY) return;
 
   try {
-    const output = execFileSync(process.platform === 'win32' ? 'cmd.exe' : 'sh',
-      process.platform === 'win32'
-        ? ['/c', 'type .env.local']
-        : ['-c', 'cat .env.local'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const output = execFileSync(
+      process.platform === 'win32' ? 'cmd.exe' : 'sh',
+      process.platform === 'win32' ? ['/c', 'type .env.local'] : ['-c', 'cat .env.local'],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+    );
 
     for (const line of output.split(/\r?\n/)) {
       const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/.exec(line);
@@ -36,7 +35,69 @@ function loadEnvFile() {
       process.env[match[1]] = value;
     }
   } catch {
-    // The npm script normally supplies --env-file=.env.local on Node 20+.
+    // Node's --env-file normally loads .env.local before this script starts.
+  }
+}
+
+function runNslookup(args) {
+  return execFileSync('nslookup', args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
+function buildNonSrvUri(srvUri) {
+  const match = /^mongodb\+srv:\/\/([^@]+)@([^/?]+)(\/[^?]*)?(\?.*)?$/i.exec(srvUri);
+  if (!match) return null;
+
+  const [, credentials, srvHost, dbPath = '', originalQuery = ''] = match;
+
+  const srvOutput = runNslookup(['-type=SRV', `_mongodb._tcp.${srvHost}`]);
+  const hosts = [...srvOutput.matchAll(/svr hostname\s*=\s*([^\s\r\n]+)/gi)]
+    .map((item) => item[1].replace(/\.$/, ''));
+
+  if (!hosts.length) throw new Error('Could not resolve MongoDB Atlas SRV hosts with nslookup.');
+
+  let txtOptions = '';
+  try {
+    const txtOutput = runNslookup(['-type=TXT', srvHost]);
+    const txtParts = [...txtOutput.matchAll(/text\s*=\s*"([^"]*)"/gi)].map((item) => item[1]);
+    txtOptions = txtParts.join('');
+  } catch {
+    // TXT is optional; Atlas normally provides replicaSet/authSource here.
+  }
+
+  const query = new URLSearchParams(originalQuery.replace(/^\?/, ''));
+  if (txtOptions) {
+    for (const part of txtOptions.split('&')) {
+      const [key, ...valueParts] = part.split('=');
+      if (key && !query.has(key)) query.set(key, valueParts.join('='));
+    }
+  }
+  query.set('tls', 'true');
+
+  return `mongodb://${credentials}@${hosts.join(',')}${dbPath}?${query.toString()}`;
+}
+
+async function connectMongo(uri) {
+  try {
+    return await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 15000,
+      family: 4,
+    });
+  } catch (error) {
+    if (!uri.startsWith('mongodb+srv://') || !/querySrv|ECONNREFUSED/i.test(error.message)) {
+      throw error;
+    }
+
+    console.warn('⚠ MongoDB SRV lookup failed in Node. Falling back to Windows nslookup resolution...');
+    const fallbackUri = buildNonSrvUri(uri);
+    if (!fallbackUri) throw error;
+
+    return mongoose.connect(fallbackUri, {
+      serverSelectionTimeoutMS: 15000,
+      family: 4,
+    });
   }
 }
 
@@ -74,21 +135,9 @@ async function main() {
   if (!uri) throw new Error('MONGODB_URI is required.');
   if (!process.env.IMAGEKIT_PRIVATE_KEY) throw new Error('IMAGEKIT_PRIVATE_KEY is required.');
 
-  let connection;
-  try {
-    connection = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 15000,
-      family: 4,
-    });
-  } catch (error) {
-    throw new Error(
-      `MongoDB connection failed: ${error.message}. ` +
-      'MongoDB Compass may still connect while Node uses a different DNS path. ' +
-      'Try the migration again after closing VPN/proxy or switching DNS to 1.1.1.1/8.8.8.8.',
-    );
-  }
-
+  const connection = await connectMongo(uri);
   const students = connection.connection.collection('students');
+
   const records = await students.find(
     { photo: { $regex: /^data:image\/(jpeg|png|webp);base64,/ } },
     { projection: { _id: 1, name: 1, rollNumber: 1, photo: 1 } },

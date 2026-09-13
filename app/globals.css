@@ -32,8 +32,6 @@ table { min-width:640px; }
   .page-transition { padding-bottom:.5rem; }
   .page-transition .rounded-xl { border-radius:1rem; }
   .page-transition .rounded-2xl { border-radius:1.15rem; }
-
-  /* Native mobile surfaces: reduce the visual language of desktop web panels. */
   .page-transition > .space-y-6 > section.rounded-xl,
   .page-transition > .space-y-6 > div.rounded-xl,
   .page-transition > .space-y-6 > div.rounded-2xl { border-radius:1.15rem; box-shadow:0 5px 22px rgba(15,23,42,.055); }
@@ -45,8 +43,6 @@ table { min-width:640px; }
   .page-transition button:not(.native-tab),
   .page-transition a:not(.native-tab) { border-radius:.85rem; }
   .page-transition .shadow-sm { box-shadow:0 4px 18px rgba(15,23,42,.055); }
-
-  /* Lists become stacked app cards instead of compressed tables. */
   .overflow-x-auto:has(table) { overflow:visible; }
   .overflow-x-auto:has(table) table { display:block; width:100%!important; min-width:0!important; table-layout:auto!important; border-collapse:separate; border-spacing:0; }
   .overflow-x-auto:has(table) thead { display:none; }
@@ -81,8 +77,6 @@ table { min-width:640px; }
   .overflow-x-auto:has(table) tbody td[colspan] { display:block; grid-column:1 / -1; padding:2rem 1rem; border-bottom:0; text-align:center; }
   .overflow-x-auto:has(table) tbody td:last-child a,.overflow-x-auto:has(table) tbody td:last-child button { min-height:42px; min-width:42px; border-radius:.75rem; }
   .overflow-x-auto:has(table) colgroup,.overflow-x-auto:has(table) col { width:auto!important; }
-
-  /* Student-specific profile cards: the seven-column table is the Students list. */
   .overflow-x-auto:has(table thead th:nth-child(7)) tbody { gap:.8rem; }
   .overflow-x-auto:has(table thead th:nth-child(7)) tbody tr { border-color:#dbe5f0; border-radius:1.35rem; background:#fff; box-shadow:0 8px 26px rgba(15,23,42,.07); padding:.2rem 0 0; }
   .overflow-x-auto:has(table thead th:nth-child(7)) tbody tr::before { content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,#dbeafe,transparent); }
@@ -102,17 +96,44 @@ table { min-width:640px; }
   .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(7) a:first-child { margin-left:auto; }
   .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(6) span { min-height:28px; align-items:center; padding-left:.65rem; padding-right:.65rem; }
 
-  .ui-bottom-sheet-shell { align-items:flex-end!important; padding:0!important; }
-  .ui-bottom-sheet { width:100%; max-width:none!important; max-height:min(88dvh,760px); overflow-y:auto; border-radius:1.4rem 1.4rem 0 0!important; padding-bottom:env(safe-area-inset-bottom); }
-  .fixed.inset-0[role="dialog"]:has(form) { align-items:flex-end!important; padding:0!important; overflow:hidden!important; }
-  .fixed.inset-0[role="dialog"]:has(form) > .relative { width:100%!important; max-width:none!important; max-height:92dvh!important; overflow-y:auto!important; margin:0!important; border-radius:1.4rem 1.4rem 0 0!important; padding:1.15rem!important; padding-bottom:max(1.15rem,env(safe-area-inset-bottom))!important; box-shadow:0 -12px 40px rgba(15,23,42,.18); animation:bottom-sheet-in 260ms cubic-bezier(.22,.9,.28,1) both; }
-  .fixed.inset-0[role="dialog"]:has(form) > .relative::before { content:""; display:block; width:2.75rem; height:.3rem; margin:-.35rem auto 1rem; border-radius:9999px; background:#cbd5e1; }
-  .fixed.inset-0[role="dialog"]:has(form) form > div:last-child { position:sticky; bottom:0; margin:1rem -1.15rem -1.15rem; padding:1rem 1.15rem max(1rem,env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); border-top:1px solid #e5e7eb; backdrop-filter:blur(12px); }
-  .fixed.inset-0[role="dialog"]:has(form) form > div:last-child button { min-height:48px; }
-  .fixed.inset-0[role="dialog"]:has(form) .absolute.z-50 { position:fixed!important; left:1rem; right:1rem; bottom:calc(5.5rem + env(safe-area-inset-bottom)); top:auto!important; max-height:45dvh; }
-  main > div.space-y-6.pb-8 > div:first-child > div:last-child > button { position:fixed; right:1rem; bottom:calc(5.75rem + env(safe-area-inset-bottom)); z-index:40; min-height:52px; border-radius:9999px; padding:0 1.1rem; box-shadow:0 10px 28px rgba(37,99,235,.28); }
-  main > div.space-y-6.pb-8 > div:first-child > div:last-child > button .mr-2 { margin-right:.5rem; }
-  main > div.space-y-6.pb-8 { padding-bottom:7rem; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) { overflow:visible; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) table { display:block; min-width:0!important; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody { display:grid; gap:.7rem; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody tr { display:grid; grid-template-columns:1fr; gap:0; padding:.2rem 0 0; border-radius:1.2rem; background:#fff; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td { grid-column:1!important; border-bottom:1px solid #eef2f7; padding:.72rem 1rem; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(1) { display:none; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(2)::before { content:"Roll"; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(3) { order:-1; min-height:3.8rem; padding:1rem; justify-content:flex-start; background:linear-gradient(90deg,#f8fbff,#fff); }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(3)::before { display:none; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(3) { font-size:.96rem; font-weight:750; color:#0f172a; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(4) { display:block; padding:0; border-bottom:0; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(4)::before { content:"Status"; display:block; padding:.65rem 1rem .35rem; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(4) > div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:100%; border:0; border-radius:0; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(4) button { min-height:48px; border:1px solid #e5e7eb; border-bottom:0; font-size:.78rem; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(4) button:first-child { border-radius:.75rem 0 0 0; }
+  .overflow-x-auto:has(table thead th:nth-child(4):last-child) tbody td:nth-child(4) button:last-child { border-radius:0 .75rem 0 0; }
+
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) { overflow:visible; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) table { display:block; min-width:0!important; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody { display:grid; gap:.65rem; padding:.75rem; background:#f8fafc; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody tr { display:grid; grid-template-columns:1fr 1fr; padding:.55rem 0 0; border-radius:1rem; background:#fff; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody td { grid-column:1 / -1; padding:.62rem .9rem; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody td:nth-child(1) { display:flex; grid-column:1 / -1; padding-top:.85rem; font-size:.9rem; font-weight:750; color:#0f172a; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody td:nth-child(1)::before { content:"Month"; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody td:nth-child(2)::before { content:"Expected"; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody td:nth-child(3)::before { content:"Collected"; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody td:nth-child(4)::before { content:"Due"; }
+  .page-transition:has(.recharts-wrapper) .overflow-x-auto:has(table) tbody td:nth-child(4) { border-bottom:0; }
+
+  .dashboard-screen .dashboard-stat-card { min-height:122px; padding:.85rem; border-radius:1.15rem; }
+  .dashboard-screen .dashboard-stat-card p:last-of-type { font-size:1.18rem; }
+  .dashboard-screen .dashboard-panel { border-radius:1.2rem; }
+  .dashboard-screen .quick-action-card { min-height:60px; padding:.85rem; }
+  .dashboard-screen .recharts-wrapper { max-width:100%; }
+  .dashboard-screen .recharts-surface { overflow:visible; }
+  .native-tab { min-height:56px; }
+  main { overscroll-behavior-y:contain; }
+  .page-transition { padding-bottom:1rem; }
 }
 @keyframes dashboard-loader-spin { to { transform:rotate(360deg); } }
 @keyframes dashboard-loader-pulse { 0%,100%{opacity:.55} 50%{opacity:1} }

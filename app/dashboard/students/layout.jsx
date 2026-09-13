@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import ViewModeLayout from "@/components/ViewModeLayout";
 
 function StudentPhotoEnhancer() {
   useEffect(() => {
@@ -69,5 +70,5 @@ function StudentPhotoEnhancer() {
 }
 
 export default function StudentsLayout({ children }) {
-  return <><StudentPhotoEnhancer />{children}</>;
+  return <ViewModeLayout page="students"><StudentPhotoEnhancer />{children}</ViewModeLayout>;
 }

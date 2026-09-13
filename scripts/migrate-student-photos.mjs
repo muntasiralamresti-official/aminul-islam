@@ -1,6 +1,6 @@
+import mongoose from 'mongoose';
+import 'dotenv/config';
 import { Buffer } from 'node:buffer';
-import connectMongo from '../lib/db.js';
-import Student from '../models/Student.js';
 
 const IMAGEKIT_UPLOAD_URL = 'https://upload.imagekit.io/api/v1/files/upload';
 const FOLDER = '/students';
@@ -44,18 +44,24 @@ async function uploadToImageKit({ buffer, mimeType, fileName }) {
 }
 
 async function main() {
-  await connectMongo();
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI is required.');
+  if (!process.env.IMAGEKIT_PRIVATE_KEY) throw new Error('IMAGEKIT_PRIVATE_KEY is required.');
 
-  const students = await Student.find({
-    photo: { $regex: /^data:image\/(jpeg|png|webp);base64,/ },
-  }).select('_id name rollNumber photo photoUrl').lean();
+  const connection = await mongoose.connect(uri);
+  const students = connection.connection.collection('students');
 
-  console.log(`Found ${students.length} student photo(s) to migrate.`);
+  const records = await students.find(
+    { photo: { $regex: /^data:image\/(jpeg|png|webp);base64,/ } },
+    { projection: { _id: 1, name: 1, rollNumber: 1, photo: 1 } },
+  ).toArray();
+
+  console.log(`Found ${records.length} student photo(s) to migrate.`);
 
   let migrated = 0;
   let failed = 0;
 
-  for (const student of students) {
+  for (const student of records) {
     const parsed = parseDataUrl(student.photo);
     if (!parsed) {
       failed += 1;
@@ -71,27 +77,32 @@ async function main() {
         fileName,
       });
 
-      // Only remove the legacy base64 field after ImageKit upload succeeded
-      // and the new URL has been persisted successfully.
-      await Student.updateOne(
+      // Keep the legacy base64 photo until upload and database update succeed.
+      const updateResult = await students.updateOne(
         { _id: student._id },
-        { $set: { photoUrl }, $unset: { photo: 1 } }
+        { $set: { photoUrl }, $unset: { photo: '' } },
       );
 
+      if (updateResult.modifiedCount !== 1) {
+        throw new Error('Database update was not confirmed. Legacy photo was kept.');
+      }
+
       migrated += 1;
-      console.log(`✓ ${student.name} (${student.rollNumber}) → ${photoUrl}`);
+      console.log(`✓ ${student.name} (${student.rollNumber}) migrated`);
     } catch (error) {
       failed += 1;
       console.error(`✗ ${student.name} (${student.rollNumber}): ${error.message}`);
-      // Keep the old base64 photo untouched when anything fails.
+      // Never remove the old base64 photo when a migration step fails.
     }
   }
 
   console.log(`\nMigration complete: ${migrated} migrated, ${failed} failed.`);
+  await mongoose.disconnect();
   process.exitCode = failed > 0 ? 1 : 0;
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   console.error(`Migration failed: ${error.message}`);
+  await mongoose.disconnect().catch(() => {});
   process.exitCode = 1;
 });

@@ -13,7 +13,10 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: none;
+}
 body {
   background: var(--background);
   color: var(--foreground);
@@ -21,6 +24,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
@@ -29,6 +33,7 @@ button, a {
   transition-duration: 160ms;
   transition-timing-function: ease-out;
 }
+button:active, a:active { transform: scale(.98); opacity: .82; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
@@ -36,7 +41,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
-main { min-width: 0; }
+main { min-width: 0; overscroll-behavior-y: contain; }
 
 main:has(> .p-4) > .p-4 {
   min-height: calc(100vh - 150px);
@@ -72,9 +77,34 @@ main:has(> .p-4) > .p-4::after {
   animation: dashboard-loader-pulse 1.4s ease-in-out infinite;
 }
 
-.page-transition { animation: page-enter 160ms ease-out both; }
+.page-transition { animation: page-enter 210ms cubic-bezier(.22,.8,.3,1) both; }
+.page-transition-stack { animation-name: page-stack-enter; animation-duration: 240ms; }
 .ui-modal { animation: modal-backdrop-in 160ms ease-out both; }
 .ui-modal-panel { animation: modal-panel-in 190ms cubic-bezier(.2,.8,.2,1) both; }
+.ui-bottom-sheet-backdrop { animation: modal-backdrop-in 180ms ease-out both; }
+.ui-bottom-sheet { animation: bottom-sheet-in 260ms cubic-bezier(.22,.9,.28,1) both; }
+
+.native-tab-icon {
+  position: relative;
+  transition: transform 260ms cubic-bezier(.2,1.4,.35,1), background-color 180ms ease, box-shadow 180ms ease;
+}
+.native-tab-icon-active {
+  background: #eff6ff;
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 5px 14px rgba(37, 99, 235, .12);
+}
+.native-tab-icon-active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 18px;
+  height: 3px;
+  border-radius: 9999px;
+  background: #2563eb;
+  transform: translateX(-50%);
+  animation: tab-indicator-in 260ms cubic-bezier(.2,1.5,.35,1) both;
+}
 
 table { min-width: 640px; }
 .overflow-x-auto { -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
@@ -157,13 +187,29 @@ table { min-width: 640px; }
   .page-transition { padding-bottom: 0.5rem; }
   .page-transition .rounded-xl,
   .page-transition .rounded-2xl { border-radius: 1rem; }
+
+  .ui-bottom-sheet-shell {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .ui-bottom-sheet {
+    width: 100%;
+    max-width: none !important;
+    max-height: min(88dvh, 760px);
+    overflow-y: auto;
+    border-radius: 1.4rem 1.4rem 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 @keyframes dashboard-loader-spin { to { transform: rotate(360deg); } }
 @keyframes dashboard-loader-pulse { 0%,100% { opacity:.55; } 50% { opacity:1; } }
-@keyframes page-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes page-enter { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes page-stack-enter { from { opacity: 0; transform: translateX(28px) scale(.992); } to { opacity: 1; transform: translateX(0) scale(1); } }
 @keyframes modal-backdrop-in { from { opacity:0; } to { opacity:1; } }
 @keyframes modal-panel-in { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes bottom-sheet-in { from { opacity:.7; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }
+@keyframes tab-indicator-in { from { opacity:0; transform: translateX(-50%) scaleX(.25); } to { opacity:1; transform: translateX(-50%) scaleX(1); } }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }

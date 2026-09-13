@@ -11,7 +11,7 @@ button:active,a:active { transform:scale(.98); opacity:.82; }
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
 .safe-top { padding-top:env(safe-area-inset-top); }
 .safe-bottom { padding-bottom:max(.5rem,env(safe-area-inset-bottom)); }
-main { min-width:0; min-height:0; }
+main { min-width:0; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:auto; }
 main:has(> .p-4) > .p-4 { min-height:calc(100vh - 150px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; padding:2rem; color:transparent; font-size:0; text-align:center; }
 main:has(> .p-4) > .p-4::before { content:""; width:3.25rem; height:3.25rem; border-radius:9999px; border:4px solid #e5e7eb; border-top-color:#2563eb; border-right-color:#60a5fa; animation:dashboard-loader-spin .8s linear infinite; box-shadow:0 4px 18px rgba(37,99,235,.12); }
 main:has(> .p-4) > .p-4::after { content:"Loading..."; margin-top:1rem; color:#4b5563; font-size:.875rem; line-height:1.25rem; font-weight:600; letter-spacing:.01em; animation:dashboard-loader-pulse 1.4s ease-in-out infinite; }
@@ -60,6 +60,14 @@ table { min-width:640px; }
   .page-transition .rounded-xl,.page-transition .rounded-2xl { border-radius:1rem; }
   .ui-bottom-sheet-shell { align-items:flex-end!important; padding:0!important; }
   .ui-bottom-sheet { width:100%; max-width:none!important; max-height:min(88dvh,760px); overflow-y:auto; border-radius:1.4rem 1.4rem 0 0!important; padding-bottom:env(safe-area-inset-bottom); }
+
+  /* Fees: turn the existing payment dialog into a native-style bottom sheet without changing its logic. */
+  .fixed.inset-0[role="dialog"]:has(form) { align-items:flex-end!important; padding:0!important; overflow:hidden!important; }
+  .fixed.inset-0[role="dialog"]:has(form) > .relative { width:100%!important; max-width:none!important; max-height:92dvh!important; overflow-y:auto!important; margin:0!important; border-radius:1.4rem 1.4rem 0 0!important; padding:1.15rem!important; padding-bottom:max(1.15rem,env(safe-area-inset-bottom))!important; box-shadow:0 -12px 40px rgba(15,23,42,.18); animation:bottom-sheet-in 260ms cubic-bezier(.22,.9,.28,1) both; }
+  .fixed.inset-0[role="dialog"]:has(form) > .relative::before { content:""; display:block; width:2.75rem; height:.3rem; margin:-.35rem auto 1rem; border-radius:9999px; background:#cbd5e1; }
+  .fixed.inset-0[role="dialog"]:has(form) form > div:last-child { position:sticky; bottom:0; margin:1rem -1.15rem -1.15rem; padding:1rem 1.15rem max(1rem,env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); border-top:1px solid #e5e7eb; backdrop-filter:blur(12px); }
+  .fixed.inset-0[role="dialog"]:has(form) form > div:last-child button { min-height:48px; }
+  .fixed.inset-0[role="dialog"]:has(form) .absolute.z-50 { position:fixed!important; left:1rem; right:1rem; bottom:calc(5.5rem + env(safe-area-inset-bottom)); top:auto!important; max-height:45dvh; }
 }
 @keyframes dashboard-loader-spin { to { transform:rotate(360deg); } }
 @keyframes dashboard-loader-pulse { 0%,100%{opacity:.55} 50%{opacity:1} }

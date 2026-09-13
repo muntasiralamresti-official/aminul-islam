@@ -82,6 +82,26 @@ table { min-width:640px; }
   .overflow-x-auto:has(table) tbody td:last-child a,.overflow-x-auto:has(table) tbody td:last-child button { min-height:42px; min-width:42px; border-radius:.75rem; }
   .overflow-x-auto:has(table) colgroup,.overflow-x-auto:has(table) col { width:auto!important; }
 
+  /* Student-specific profile cards: the seven-column table is the Students list. */
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody { gap:.8rem; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody tr { border-color:#dbe5f0; border-radius:1.35rem; background:#fff; box-shadow:0 8px 26px rgba(15,23,42,.07); padding:.2rem 0 0; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody tr::before { content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,#dbeafe,transparent); }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(2) { padding-left:1rem; color:#334155; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(2)::before { content:"Roll No"; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(6) { justify-content:flex-end; padding-right:1rem; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(6)::before { content:""; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(3) { min-height:4.5rem; padding:1rem 1rem .95rem; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(3) .ml-3 { line-height:1.25; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(4) { padding:.68rem 1rem; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(4)::before { content:"Phone"; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(5) { padding:.68rem 1rem; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(5)::before { content:"Batch"; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(7) { min-height:3.25rem; padding:.55rem .7rem .7rem; border-top:1px solid #eef2f7; background:#f8fafc; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(7)::before { content:"Quick actions"; color:#94a3b8; font-size:.62rem; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(7) a,.overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(7) button { min-height:44px; min-width:44px; box-shadow:0 1px 4px rgba(15,23,42,.06); }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(7) a:first-child { margin-left:auto; }
+  .overflow-x-auto:has(table thead th:nth-child(7)) tbody td:nth-child(6) span { min-height:28px; align-items:center; padding-left:.65rem; padding-right:.65rem; }
+
   .ui-bottom-sheet-shell { align-items:flex-end!important; padding:0!important; }
   .ui-bottom-sheet { width:100%; max-width:none!important; max-height:min(88dvh,760px); overflow-y:auto; border-radius:1.4rem 1.4rem 0 0!important; padding-bottom:env(safe-area-inset-bottom); }
   .fixed.inset-0[role="dialog"]:has(form) { align-items:flex-end!important; padding:0!important; overflow:hidden!important; }
@@ -99,7 +119,7 @@ table { min-width:640px; }
 @keyframes page-enter { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
 @keyframes page-stack-enter { from{opacity:0;transform:translateX(28px) scale(.992)} to{opacity:1;transform:translateX(0) scale(1)} }
 @keyframes modal-backdrop-in { from{opacity:0} to{opacity:1} }
-@keyframes modal-panel-in { from{opacity:0;transform:translateY(10px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+@keyframes modal-panel-in { from{opacity:0;transform:translateY(10px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1) } }
 @keyframes bottom-sheet-in { from{opacity:.7;transform:translateY(100%)} to{opacity:1;transform:translateY(0)} }
 @keyframes tab-indicator-in { from{opacity:0;transform:translateX(-50%) scaleX(.25)} to{opacity:1;transform:translateX(-50%) scaleX(1)} }
 @media (prefers-reduced-motion:reduce) { html{scroll-behavior:auto} *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important} }

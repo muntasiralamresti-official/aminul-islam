@@ -25,9 +25,41 @@ export default function StudentProfilePage({ params }) {
   const displayPhoto = student.photoUrl || student.photo;
   const isActive = student.status === "active";
 
-  const downloadIdCard = () => {
-    window.print();
+  const downloadIdCard = async () => {
+    const element = document.getElementById("student-id-card-pdf");
+    if (!element) return;
+
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const cardWidth = 86;
+      const cardHeight = (canvas.height * cardWidth) / canvas.width;
+      const x = (pageWidth - cardWidth) / 2;
+      const y = 20;
+
+      pdf.addImage(imgData, "PNG", x, y, cardWidth, cardHeight, undefined, "FAST");
+      pdf.save(`student-id-${student.rollNumber || student._id}.pdf`);
+    } catch (error) {
+      console.error("Failed to generate ID card PDF", error);
+      alert("PDF তৈরি করা যায়নি। আবার চেষ্টা করুন।");
+    }
   };
+
+  const printIdCard = () => window.print();
 
   return (
     <div className="mx-auto w-full max-w-4xl pb-8">
@@ -84,19 +116,19 @@ export default function StudentProfilePage({ params }) {
 
       <section className="mt-4 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:mt-5 sm:p-5 no-print">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <div><p className="text-base font-semibold text-slate-900">Student ID Card</p><p className="mt-0.5 text-xs text-slate-500">Generate a printable ID card from this student profile.</p></div>
+          <div><p className="text-base font-semibold text-slate-900">Student ID Card</p><p className="mt-0.5 text-xs text-slate-500">Download the ID card directly as a PDF.</p></div>
           <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">#{student.rollNumber}</span>
         </div>
 
         <div className="flex justify-center rounded-2xl bg-slate-50 p-4 sm:p-6">
-          <div className="id-card-preview w-full max-w-[430px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-lg">
+          <div id="student-id-card-pdf" className="id-card-preview w-full max-w-[430px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-lg">
             <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 px-5 py-4 text-white">
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-80">Student Identity Card</p>
               <h3 className="mt-1 text-xl font-extrabold">Aminul Islam</h3>
             </div>
             <div className="p-5">
               <div className="flex items-center gap-4">
-                {displayPhoto ? <img src={displayPhoto} alt={student.name} className="h-24 w-24 rounded-2xl border-4 border-white object-cover shadow ring-1 ring-slate-200" /> : <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-blue-100 text-3xl font-extrabold text-blue-700">{student.name?.charAt(0) || "S"}</div>}
+                {displayPhoto ? <img crossOrigin="anonymous" src={displayPhoto} alt={student.name} className="h-24 w-24 rounded-2xl border-4 border-white object-cover shadow ring-1 ring-slate-200" /> : <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-blue-100 text-3xl font-extrabold text-blue-700">{student.name?.charAt(0) || "S"}</div>}
                 <div className="min-w-0"><h4 className="truncate text-xl font-extrabold text-slate-950">{student.name}</h4><p className="mt-1 text-sm font-semibold text-slate-500">Student ID: #{student.rollNumber}</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{student.status}</span></div>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-2.5">
@@ -111,13 +143,13 @@ export default function StudentProfilePage({ params }) {
         </div>
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={downloadIdCard} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-blue-700"><Download className="h-4 w-4" /> Download / Save PDF</button>
-          <button type="button" onClick={downloadIdCard} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50"><Printer className="h-4 w-4" /> Print ID Card</button>
+          <button type="button" onClick={downloadIdCard} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-blue-700"><Download className="h-4 w-4" /> Download PDF</button>
+          <button type="button" onClick={printIdCard} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50"><Printer className="h-4 w-4" /> Print ID Card</button>
         </div>
       </section>
 
       <div className="hidden print-only-id-card">
-        <div className="id-card-print"> 
+        <div className="id-card-print">
           <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 px-5 py-4 text-white"><p className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-80">Student Identity Card</p><h3 className="mt-1 text-xl font-extrabold">Aminul Islam</h3></div>
           <div className="p-5"><div className="flex items-center gap-4">{displayPhoto ? <img src={displayPhoto} alt={student.name} className="h-24 w-24 rounded-2xl object-cover" /> : <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-blue-100 text-3xl font-extrabold text-blue-700">{student.name?.charAt(0) || "S"}</div>}<div><h4 className="text-xl font-extrabold">{student.name}</h4><p className="mt-1 text-sm font-semibold">Student ID: #{student.rollNumber}</p></div></div><div className="mt-5 grid grid-cols-2 gap-2.5"><IdField label="Class" value={student.classLevel || "N/A"} /><IdField label="Batch" value={student.batch?.name || "N/A"} /><IdField label="Subject" value={student.batch?.subject || "N/A"} /><IdField label="Phone" value={student.phone || "N/A"} /></div></div>
         </div>

@@ -9,18 +9,16 @@ const StudentSchema = new mongoose.Schema(
     },
     rollNumber: {
       type: String,
-      required: [true, 'Please provide a roll/ID number'],
       unique: true,
+      sparse: true,
       trim: true,
     },
     phone: {
       type: String,
-      required: [true, 'Please provide phone number'],
       trim: true,
     },
     guardianPhone: {
       type: String,
-      required: [true, 'Please provide guardian phone number'],
       trim: true,
     },
     address: {
@@ -42,13 +40,11 @@ const StudentSchema = new mongoose.Schema(
     },
     classLevel: {
       type: String,
-      required: [true, 'Please provide class level'],
       trim: true,
     },
     batch: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Batch',
-      required: [true, 'Please assign to a batch'],
     },
     admissionDate: {
       type: Date,

@@ -2,31 +2,29 @@
 
 import { useEffect } from "react";
 
-const DEFAULT_APP_FONT_ADJUST = 2;
-const MIN_APP_FONT_ADJUST = -1;
-const MAX_APP_FONT_ADJUST = 4;
+export const DEFAULT_FONT_SIZE = 16;
+export const MIN_FONT_SIZE = 12;
+export const MAX_FONT_SIZE = 24;
 
 export default function PwaFontSizeInitializer() {
   useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true;
+    let stored = Number.parseInt(localStorage.getItem("app-font-size") || "", 10);
+    
+    // Legacy migration
+    if (!Number.isFinite(stored)) {
+      const legacy = Number.parseInt(localStorage.getItem("pwa-font-size-adjust") || "", 10);
+      if (Number.isFinite(legacy)) {
+        stored = 16 + legacy;
+        localStorage.removeItem("pwa-font-size-adjust");
+      }
+    }
 
-    if (!standalone) return;
-
-    const stored = Number.parseInt(
-      localStorage.getItem("pwa-font-size-adjust") || "",
-      10
-    );
     const value = Number.isFinite(stored)
-      ? Math.min(MAX_APP_FONT_ADJUST, Math.max(MIN_APP_FONT_ADJUST, stored))
-      : DEFAULT_APP_FONT_ADJUST;
+      ? Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, stored))
+      : DEFAULT_FONT_SIZE;
 
-    document.documentElement.dataset.pwaApp = "true";
-    document.documentElement.style.setProperty(
-      "--pwa-font-adjust",
-      `${value}px`
-    );
+    document.documentElement.style.fontSize = ${value}px;
+    localStorage.setItem("app-font-size", String(value));
   }, []);
 
   return null;

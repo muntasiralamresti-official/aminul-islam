@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { Eye, EyeOff, Minus, Plus, RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
 
-const DEFAULT_APP_FONT_ADJUST = 2;
-const MIN_APP_FONT_ADJUST = -1;
-const MAX_APP_FONT_ADJUST = 4;
+const DEFAULT_APP_FONT_SIZE = 16;
+const MIN_APP_FONT_SIZE = 12;
+const MAX_APP_FONT_SIZE = 24;
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -14,17 +14,21 @@ export default function SettingsPage() {
   const [accountSaving, setAccountSaving] = useState(false);
   const [showAccountPasswords, setShowAccountPasswords] = useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
-  const [appFontAdjust, setAppFontAdjust] = useState(DEFAULT_APP_FONT_ADJUST);
+  const [appFontSize, setAppFontSize] = useState(DEFAULT_APP_FONT_SIZE);
   const [accountData, setAccountData] = useState({ email: "", currentPassword: "", newPassword: "" });
   const [formData, setFormData] = useState({ centerName: "", contactEmail: "", defaultFee: 1000 });
 
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
     setIsStandaloneApp(standalone);
-    const storedFontAdjust = Number.parseInt(localStorage.getItem("pwa-font-size-adjust") || "", 10);
-    const nextFontAdjust = Number.isFinite(storedFontAdjust) ? Math.min(MAX_APP_FONT_ADJUST, Math.max(MIN_APP_FONT_ADJUST, storedFontAdjust)) : DEFAULT_APP_FONT_ADJUST;
-    setAppFontAdjust(nextFontAdjust);
-    document.documentElement.style.setProperty("--pwa-font-adjust", `${nextFontAdjust}px`);
+    let storedFontAdjust = Number.parseInt(localStorage.getItem("app-font-size") || "", 10);
+    if (!Number.isFinite(storedFontAdjust)) {
+      const legacy = Number.parseInt(localStorage.getItem("pwa-font-size-adjust") || "", 10);
+      if (Number.isFinite(legacy)) storedFontAdjust = 16 + legacy;
+    }
+    const nextFontSize = Number.isFinite(storedFontAdjust) ? Math.min(MAX_APP_FONT_SIZE, Math.max(MIN_APP_FONT_SIZE, storedFontAdjust)) : DEFAULT_APP_FONT_SIZE;
+    setAppFontSize(nextFontSize);
+    document.documentElement.style.fontSize = `${nextFontSize}px`;
 
     fetch("/api/settings")
       .then((res) => res.json())
@@ -39,10 +43,10 @@ export default function SettingsPage() {
   }, []);
 
   const updateAppFontSize = (nextValue) => {
-    const next = Math.min(MAX_APP_FONT_ADJUST, Math.max(MIN_APP_FONT_ADJUST, nextValue));
-    setAppFontAdjust(next);
-    localStorage.setItem("pwa-font-size-adjust", String(next));
-    document.documentElement.style.setProperty("--pwa-font-adjust", `${next}px`);
+    const next = Math.min(MAX_APP_FONT_SIZE, Math.max(MIN_APP_FONT_SIZE, nextValue));
+    setAppFontSize(next);
+    localStorage.setItem("app-font-size", String(next));
+    document.documentElement.style.fontSize = `${next}px`;
   };
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -104,27 +108,25 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
       <p className="mt-2 text-sm text-gray-700">Manage your coaching center profile, staff, and application configurations.</p>
 
-      {isStandaloneApp && (
-        <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-md p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900">App Display</h2>
-              <p className="mt-1 text-sm text-gray-500">Adjust the font size across the installed app. This setting is saved on this device.</p>
-            </div>
-            <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">{appFontAdjust > 0 ? `+${appFontAdjust}` : appFontAdjust} px</span>
+      <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-md p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-medium text-gray-900">Display Settings</h2>
+            <p className="mt-1 text-sm text-gray-500">Adjust the font size across the entire app. This setting is saved on this device.</p>
           </div>
-          <div className="mt-5 flex items-center gap-3">
-            <button type="button" onClick={() => updateAppFontSize(appFontAdjust - 1)} disabled={appFontAdjust <= MIN_APP_FONT_ADJUST} aria-label="Decrease app font size" title="Decrease font size" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"><Minus className="h-5 w-5" /></button>
-            <input type="range" min={MIN_APP_FONT_ADJUST} max={MAX_APP_FONT_ADJUST} step="1" value={appFontAdjust} onChange={(e) => updateAppFontSize(Number(e.target.value))} aria-label="App font size" className="h-2 w-full cursor-pointer accent-blue-600" />
-            <button type="button" onClick={() => updateAppFontSize(appFontAdjust + 1)} disabled={appFontAdjust >= MAX_APP_FONT_ADJUST} aria-label="Increase app font size" title="Increase font size" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-5 w-5" /></button>
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-            <span>Smaller</span>
-            <button type="button" onClick={() => updateAppFontSize(DEFAULT_APP_FONT_ADJUST)} className="inline-flex items-center gap-1 font-medium text-blue-600 hover:text-blue-700"><RotateCcw className="h-3.5 w-3.5" /> Reset</button>
-            <span>Larger</span>
-          </div>
+          <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">{appFontSize} px</span>
         </div>
-      )}
+        <div className="mt-5 flex items-center gap-3">
+          <button type="button" onClick={() => updateAppFontSize(appFontSize - 1)} disabled={appFontSize <= MIN_APP_FONT_SIZE} aria-label="Decrease app font size" title="Decrease font size" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"><Minus className="h-5 w-5" /></button>
+          <input type="range" min={MIN_APP_FONT_SIZE} max={MAX_APP_FONT_SIZE} step="1" value={appFontSize} onChange={(e) => updateAppFontSize(Number(e.target.value))} aria-label="App font size" className="h-2 w-full cursor-pointer accent-blue-600" />
+          <button type="button" onClick={() => updateAppFontSize(appFontSize + 1)} disabled={appFontSize >= MAX_APP_FONT_SIZE} aria-label="Increase app font size" title="Increase font size" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-5 w-5" /></button>
+        </div>
+        <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+          <span>Smaller</span>
+          <button type="button" onClick={() => updateAppFontSize(DEFAULT_APP_FONT_SIZE)} className="inline-flex items-center gap-1 font-medium text-blue-600 hover:text-blue-700"><RotateCcw className="h-3.5 w-3.5" /> Reset</button>
+          <span>Larger</span>
+        </div>
+      </div>
 
       <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-md p-6">
         <h2 className="text-lg font-medium">Coaching Profile</h2>
@@ -154,3 +156,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

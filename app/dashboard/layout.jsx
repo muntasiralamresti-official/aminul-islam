@@ -1,4 +1,5 @@
 "use client";
+import "../dashboard-mobile.css";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -58,42 +59,6 @@ export default function DashboardLayout({ children }) {
       <main className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-y-auto pb-24 focus:outline-none lg:pb-0"><div className="py-3 sm:py-6"><div key={pathname} className={clsx("mx-auto max-w-7xl px-3 sm:px-6 md:px-8 page-transition", isStackRoute && "page-transition-stack")}>{children}</div></div></main>
     </div>
     <nav className="safe-bottom fixed bottom-0 z-40 flex w-full items-center border-t border-gray-200 bg-white/95 px-1 pt-1 shadow-[0_-4px_18px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden" aria-label="Mobile navigation">{mobileNavigation.map(item => { const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`)); return <Link key={item.name} href={item.href} prefetch onClick={() => haptic()} aria-current={active ? "page" : undefined} className={clsx(active ? "text-blue-600" : "text-gray-500", "native-tab flex min-h-14 flex-1 flex-col items-center justify-center rounded-xl px-1 py-1 text-[10px] font-semibold active:scale-95 active:opacity-70")}><span className={clsx("native-tab-icon mb-0.5 flex h-7 w-10 items-center justify-center rounded-full", active && "native-tab-icon-active")}><item.icon className="h-[19px] w-[19px]" /></span>{item.name}</Link>; })}<button type="button" onClick={() => { haptic(); setSidebarOpen(true); }} className="native-tab flex min-h-14 flex-1 flex-col items-center justify-center rounded-xl px-1 py-1 text-[10px] font-semibold text-gray-500 active:scale-95 active:opacity-70"><span className="native-tab-icon mb-0.5 flex h-7 w-10 items-center justify-center rounded-full"><Menu className="h-[19px] w-[19px]" /></span>More</button></nav>
-    <style jsx global>{`@media (max-width: 640px) { html, body { min-height: 100%; overflow-x: hidden; } body { overflow-y: auto !important; } main { overflow-y: auto !important; overscroll-behavior-y: auto !important; touch-action: pan-y; } main, main * { pointer-events: auto; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) { overflow: visible !important; padding: .35rem; background: #f8fafc; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) table { display: block !important; min-width: 0 !important; width: 100% !important; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody { display: grid !important; gap: .8rem; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody tr { display: grid !important; grid-template-columns: 1fr 1fr; gap: 0; padding: 0 !important; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 1.25rem; background: #fff; box-shadow: 0 8px 28px rgba(15,23,42,.07); }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td { display: flex !important; align-items: center; justify-content: space-between; gap: .75rem; min-width: 0; padding: .72rem .9rem; border-bottom: 1px solid #eef2f7; white-space: normal; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td::before { color: #94a3b8; font-size: .61rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(1) { display: none !important; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(2) { grid-column: 1 / -1; justify-content: flex-start; min-height: 4.4rem; padding: 1rem; background: linear-gradient(135deg,#f8fbff,#fff); }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(2)::before { display: none; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(2) > div > div:first-child { font-size: 1rem; font-weight: 800; color: #0f172a; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(2) > div > div:last-child { margin-top: .2rem; font-size: .72rem; color: #64748b; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(3) { grid-column: 1 / -1; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(3)::before { content: "Batch"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(4)::before { content: "Monthly fee"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(5)::before { content: "Paid"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(6)::before { content: "Previous due"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(7)::before { content: "Current due"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(8)::before { content: "Last payment"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(9)::before { content: "Last amount"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(10) { grid-column: 1 / -1; justify-content: space-between; border-bottom: 0; background: #f8fafc; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(10)::before { content: "Payment status"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(4),.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(5),.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(6),.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(7),.page-transition .overflow-x-auto:has(table thead th:nth-child(10)) tbody td:nth-child(9) { font-weight: 750; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody tr { grid-template-columns: 1fr 1fr; border-radius: 1.15rem; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(1) { grid-column: 1; display: flex !important; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(2) { grid-column: 1 / -1; order: -1; justify-content: flex-start; padding: .95rem 1rem; background: linear-gradient(135deg,#f8fbff,#fff); }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(2)::before { display:none; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(3)::before { content: "For"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(4)::before { content: "Amount"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(5)::before { content: "Method"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(6)::before { content: "Status"; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(7) { grid-column: 1 / -1; justify-content: flex-end; border-bottom: 0; background: #f8fafc; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(7)::before { content: "Actions"; margin-right: auto; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(7)):not(:has(table thead th:nth-child(10))) tbody td:nth-child(7) button { min-width: 42px; min-height: 42px; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(8)) { overflow-x: auto !important; overflow-y: hidden !important; }
-.page-transition .overflow-x-auto:has(table thead th:nth-child(8)) table { display: table !important; width: max-content !important; min-width: max-content !important; }
-}`}</style>
+    
   </div>;
 }

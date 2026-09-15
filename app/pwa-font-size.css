@@ -1,27 +1,40 @@
-/* App/PWA typography adjustment only. Website layout is untouched. */
-@media (display-mode: standalone) {
+/* App/PWA typography adjustment only. Website layout and typography are untouched. */
+html[data-pwa-app="true"] {
   /* The setting is stored locally per device. Default keeps the current larger app text. */
-  :root { --pwa-font-adjust: 2px; }
+  --pwa-font-adjust: 2px;
+}
 
-  .text-xs { font-size: calc(0.75rem + var(--pwa-font-adjust)) !important; }
-  .text-sm { font-size: calc(0.875rem + var(--pwa-font-adjust)) !important; }
-  .text-base { font-size: calc(1rem + var(--pwa-font-adjust)) !important; }
-  .text-lg { font-size: calc(1.125rem + var(--pwa-font-adjust)) !important; }
-  .text-xl { font-size: calc(1.25rem + var(--pwa-font-adjust)) !important; }
-  .text-2xl { font-size: calc(1.5rem + var(--pwa-font-adjust)) !important; }
-  .text-3xl { font-size: calc(1.875rem + var(--pwa-font-adjust)) !important; }
-  .text-4xl { font-size: calc(2.25rem + var(--pwa-font-adjust)) !important; }
-  .text-5xl { font-size: calc(3rem + var(--pwa-font-adjust)) !important; }
-  .text-6xl { font-size: calc(3.75rem + var(--pwa-font-adjust)) !important; }
-  .text-7xl { font-size: calc(4.5rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] body {
+  /* Covers normal/inherited text that does not use a Tailwind text-* utility. */
+  font-size: calc(1rem + var(--pwa-font-adjust));
+}
 
-  .page-transition label,
-  .page-transition th,
-  .page-transition td {
-    font-size: inherit;
-  }
+html[data-pwa-app="true"] .text-xs { font-size: calc(0.75rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-sm { font-size: calc(0.875rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-base { font-size: calc(1rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-lg { font-size: calc(1.125rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-xl { font-size: calc(1.25rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-2xl { font-size: calc(1.5rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-3xl { font-size: calc(1.875rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-4xl { font-size: calc(2.25rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-5xl { font-size: calc(3rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-6xl { font-size: calc(3.75rem + var(--pwa-font-adjust)) !important; }
+html[data-pwa-app="true"] .text-7xl { font-size: calc(4.5rem + var(--pwa-font-adjust)) !important; }
 
-  .overflow-x-auto:has(table) tbody td::before {
-    font-size: calc(0.65rem + var(--pwa-font-adjust));
-  }
+/* Form controls inherit the surrounding text size unless a text-* utility sets one explicitly. */
+html[data-pwa-app="true"] button,
+html[data-pwa-app="true"] input,
+html[data-pwa-app="true"] select,
+html[data-pwa-app="true"] textarea {
+  font-size: inherit;
+}
+
+html[data-pwa-app="true"] .page-transition label,
+html[data-pwa-app="true"] .page-transition th,
+html[data-pwa-app="true"] .page-transition td {
+  font-size: inherit;
+}
+
+html[data-pwa-app="true"] .overflow-x-auto:has(table) tbody td::before {
+  font-size: calc(0.65rem + var(--pwa-font-adjust));
 }

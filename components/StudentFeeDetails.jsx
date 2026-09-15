@@ -13,6 +13,7 @@ function StatusBadge({ status }) {
     paid: ["PAID", "bg-emerald-500 text-white", Check],
     partial: ["PARTIAL", "bg-amber-500 text-white", Clock3],
     unpaid: ["UNPAID", "bg-red-500 text-white", CircleDollarSign],
+    due: ["DUE", "bg-red-500 text-white", CircleDollarSign],
     upcoming: ["UPCOMING", "bg-slate-200 text-slate-700", CalendarDays],
     "not-applicable": ["N/A", "bg-slate-200 text-slate-600", CalendarDays],
   };

@@ -1,6 +1,5 @@
 import { Geist } from "next/font/google";
 import "./globals.css";
-import "./pwa-font-size.css";
 import Providers from "@/components/Providers";
 import PwaFontSizeInitializer from "@/components/PwaFontSizeInitializer";
 
@@ -43,4 +42,5 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+
 

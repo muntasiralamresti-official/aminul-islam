@@ -138,18 +138,11 @@ export default function FeesPage() {
   useEffect(() => { if (historyPage > historyTotalPages) setHistoryPage(historyTotalPages); }, [historyPage, historyTotalPages]);
 
   const clearStudentFilters = () => { setBatchFilter(""); setStudentFilter(""); setStudentSearch(""); setPaymentDateFilter(""); setPaymentStatusFilter(""); setStudentPage(1); };
-  const openNewPaymentModal = (studentId = "", trigger = null) => {
-    const selected = (students || []).find((student) => student._id === studentId);
-    modalTriggerRef.current = trigger;
-    setEditMode(false); setEditingId(null);
-    setFormData({ student: studentId, month: selectedMonth, year: selectedYear, amount: selected?.currentDue > 0 ? selected.currentDue : (selected?.monthlyFee || ""), method: "cash", status: "paid", date: todayInput() });
-    setModalStudentSearch(""); setShowStudentDropdown(false); setModalPosition(null); setShowModal(true);
+  const openNewPaymentModal = (studentId = "") => {
+    router.push(studentId ? `/dashboard/fees/new?student=${studentId}` : "/dashboard/fees/new");
   };
-  const openEditModal = (payment, trigger = null) => {
-    modalTriggerRef.current = trigger;
-    setEditMode(true); setEditingId(payment._id);
-    setFormData({ student: payment.student?._id || "", month: payment.month, year: payment.year, amount: payment.amount, method: payment.method || "cash", status: payment.status || "paid", date: payment.date ? new Date(payment.date).toISOString().slice(0, 10) : todayInput() });
-    setModalStudentSearch(""); setShowStudentDropdown(false); setModalPosition(null); setShowModal(true);
+  const openEditModal = (payment) => {
+    router.push(`/dashboard/fees/edit/${payment._id}`);
   };
 
   useLayoutEffect(() => {
@@ -229,7 +222,7 @@ export default function FeesPage() {
     <div className="fixed bottom-[5.25rem] left-4 right-4 z-40 sm:hidden"><button onClick={(event) => openNewPaymentModal("", event.currentTarget)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-xl shadow-blue-600/30 ring-1 ring-white/20"><Plus className="h-5 w-5" /> Record Payment</button></div>
     {showFilters && <div className="fixed inset-0 z-[90] bg-black/40 sm:hidden" onClick={() => setShowFilters(false)}><div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="mb-5 flex items-center justify-between"><div><h3 className="text-lg font-bold text-gray-900">Fee Filters</h3><p className="text-xs text-gray-500">Narrow down the student list</p></div><button onClick={() => setShowFilters(false)} className="rounded-full bg-gray-100 p-2 text-gray-500" aria-label="Close filters"><X className="h-5 w-5" /></button></div><div className="space-y-3"><input value={studentSearch} onChange={(event) => setStudentSearch(event.target.value)} placeholder="Search student / roll / batch" className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm" /><select value={batchFilter} onChange={(event) => { setBatchFilter(event.target.value); setStudentFilter(""); }} className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"><option value="">All Batches</option>{batches.map((batch) => <option key={batch._id} value={batch._id}>{batch.name}</option>)}</select><select value={studentFilter} onChange={(event) => setStudentFilter(event.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"><option value="">All Students</option>{(summary?.students || []).filter((student) => batchFilter ? student.batch?._id === batchFilter : true).map((student) => <option key={student._id} value={student._id}>{student.name} ({student.rollNumber})</option>)}</select><input type="date" value={paymentDateFilter} onChange={(event) => setPaymentDateFilter(event.target.value)} className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm" /><select value={paymentStatusFilter} onChange={(event) => setPaymentStatusFilter(event.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"><option value="">All Payment Status</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option></select></div><div className="mt-5 flex gap-2"><button onClick={clearStudentFilters} className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Clear</button><button onClick={() => setShowFilters(false)} className="flex-1 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white">Apply Filters</button></div></div></div>}
     
-    <ConfirmDialog open={Boolean(deleteId)} title="Delete payment?" message="This payment record will be permanently deleted and the fee summary will be recalculated." confirmText="Delete Payment" cancelText="Cancel" danger onCancel={() => setDeleteId(null)} onConfirm={handleDelete} />
+    <ConfirmDialog open={Boolean(deleteId)} title="Delete payment?" message="This payment record will be permanently deleted and the fee summary will be recalculated." confirmLabel="Delete Payment" cancelText="Cancel" danger onCancel={() => setDeleteId(null)} onConfirm={handleDelete} />
   </div>;
 }
 

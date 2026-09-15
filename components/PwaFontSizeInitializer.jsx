@@ -23,7 +23,7 @@ export default function PwaFontSizeInitializer() {
       ? Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, stored))
       : DEFAULT_FONT_SIZE;
 
-    document.documentElement.style.fontSize = ${value}px;
+    document.documentElement.style.fontSize = `${value}px`;
     localStorage.setItem("app-font-size", String(value));
   }, []);
 

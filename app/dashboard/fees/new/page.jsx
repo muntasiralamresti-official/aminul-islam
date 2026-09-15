@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { ChevronLeft, RefreshCw, Search } from "lucide-react";
@@ -8,10 +8,10 @@ import Link from "next/link";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const PAYMENT_METHODS = ["cash", "bkash", "nagad", "bank"];
-const money = (value) => ? ;
+const money = (value) => `\u09F3 ${Number(value || 0).toLocaleString("en-BD")}`;
 const todayInput = () => {
   const date = new Date();
-  return ${date.getFullYear()}--;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 };
 
 export default function NewPaymentPage() {
@@ -61,9 +61,17 @@ export default function NewPaymentPage() {
       setSelectedStudentSummary(null);
       return;
     }
-    fetch(/api/fees/student/)
+    fetch(`/api/fees/student/${formData.student}`)
       .then((res) => res.json())
-      .then((data) => setSelectedStudentSummary(data))
+      .then((data) => {
+        setSelectedStudentSummary(data);
+        setFormData(prev => {
+          if (!prev.amount) {
+            return { ...prev, amount: data.totalOutstanding > 0 ? data.totalOutstanding : (data.student?.monthlyFee || "") };
+          }
+          return prev;
+        });
+      })
       .catch(() => setSelectedStudentSummary(null));
   }, [formData.student]);
 
@@ -123,7 +131,7 @@ export default function NewPaymentPage() {
                 type="text"
                 placeholder={loadingStudents ? "Loading students..." : "Search by name or roll number..."}
                 disabled={loadingStudents}
-                value={showStudentDropdown ? modalStudentSearch : (selectedStudentObj ? ${selectedStudentObj.name} () : "")}
+                value={showStudentDropdown ? modalStudentSearch : (selectedStudentObj ? `${selectedStudentObj.name} (${selectedStudentObj.rollNumber})` : "")}
                 onChange={(event) => {
                   setModalStudentSearch(event.target.value);
                   setShowStudentDropdown(true);
@@ -149,7 +157,7 @@ export default function NewPaymentPage() {
                         setModalStudentSearch("");
                         setShowStudentDropdown(false);
                       }}
-                      className={lex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm transition-colors hover:bg-blue-50 \}
+                      className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm transition-colors hover:bg-blue-50 ${formData.student === student._id ? "bg-blue-50 font-semibold text-blue-700" : "text-gray-900"}`}
                     >
                       <span>{student.name}</span>
                       <span className="text-xs text-gray-400">Roll: {student.rollNumber}</span>
@@ -166,9 +174,9 @@ export default function NewPaymentPage() {
             
             {selectedStudentSummary && (
               <div className="mt-3 grid grid-cols-3 gap-3 rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
-                <div>Monthly<br /><strong className="text-gray-900">{money(selectedStudentSummary.monthlyFee)}</strong></div>
-                <div>Current due<br /><strong className="text-blue-700">{money(selectedStudentSummary.currentDue)}</strong></div>
-                <div>Previous due<br /><strong className="text-amber-700">{money(selectedStudentSummary.previousDue)}</strong></div>
+                <div>Monthly<br /><strong className="text-gray-900">{money(selectedStudentSummary.student?.monthlyFee || 0)}</strong></div>
+                <div>Total due<br /><strong className="text-blue-700">{money(selectedStudentSummary.totalOutstanding || 0)}</strong></div>
+                <div>Previous due<br /><strong className="text-amber-700">{money(selectedStudentSummary.previousDue || 0)}</strong></div>
               </div>
             )}
           </div>

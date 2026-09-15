@@ -165,9 +165,9 @@ export default function EditPaymentPage({ params }) {
             
             {selectedStudentSummary && (
               <div className="mt-3 grid grid-cols-3 gap-3 rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
-                <div>Monthly<br /><strong className="text-gray-900">{money(selectedStudentSummary.monthlyFee)}</strong></div>
-                <div>Current due<br /><strong className="text-blue-700">{money(selectedStudentSummary.currentDue)}</strong></div>
-                <div>Previous due<br /><strong className="text-amber-700">{money(selectedStudentSummary.previousDue)}</strong></div>
+                <div>Monthly<br /><strong className="text-gray-900">{money(selectedStudentSummary.student?.monthlyFee || 0)}</strong></div>
+                <div>Total due<br /><strong className="text-blue-700">{money(selectedStudentSummary.totalOutstanding || 0)}</strong></div>
+                <div>Previous due<br /><strong className="text-amber-700">{money(selectedStudentSummary.previousDue || 0)}</strong></div>
               </div>
             )}
           </div>

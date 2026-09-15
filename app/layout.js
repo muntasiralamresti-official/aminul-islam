@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./pwa-font-size.css";
 import Providers from "@/components/Providers";
+import PwaFontSizeInitializer from "@/components/PwaFontSizeInitializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({ children }) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-gray-50">
+        <PwaFontSizeInitializer />
         <Providers>
           {children}
         </Providers>

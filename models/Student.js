@@ -67,6 +67,10 @@ const StudentSchema = new mongoose.Schema(
 
 StudentSchema.index({ status: 1 });
 StudentSchema.index({ status: 1, batch: 1 });
+StudentSchema.index({ batch: 1 });
 StudentSchema.index({ createdAt: -1 });
+// Text search index - speeds up name/roll/phone search queries
+StudentSchema.index({ name: 1, rollNumber: 1, phone: 1 });
+StudentSchema.index({ rollNumber: 1 });
 
 export default mongoose.models.Student || mongoose.model('Student', StudentSchema);

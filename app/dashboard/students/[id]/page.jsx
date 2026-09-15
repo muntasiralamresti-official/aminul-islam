@@ -8,17 +8,21 @@ export default function StudentProfilePage({ params }) {
   const { id } = use(params);
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetch(`/api/students/${id}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Student not found');
+        return res.json();
+      })
       .then(data => setStudent(data))
-      .catch(err => console.error(err))
+      .catch(err => setError(err.message || 'Failed to load student'))
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="p-4">Loading profile...</div>;
-  if (!student) return <div className="p-4 text-red-500">Student not found</div>;
+  if (loading) return <div className="flex items-center justify-center p-12"><div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" /></div>;
+  if (error || !student) return <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center"><p className="text-sm font-medium text-red-700">{error || 'Student not found'}</p><Link href="/dashboard/students" className="mt-3 inline-block text-sm text-blue-600 hover:underline">← Back to Students</Link></div>;
 
   const displayPhoto = student.photoUrl || student.photo;
 
@@ -42,10 +46,10 @@ export default function StudentProfilePage({ params }) {
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Phone</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{student.phone}</dd></div>
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Guardian Phone</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{student.guardianPhone}</dd></div>
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Class/Level</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{student.classLevel}</dd></div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Batch</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{student.batch?.name} ({student.batch?.subject})</dd></div>
+            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Batch</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{student.batch ? `${student.batch.name} (${student.batch.subject})` : 'No Batch Assigned'}</dd></div>
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Monthly Fee</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{student.monthlyFee ? `৳ ${student.monthlyFee}` : 'Default'}</dd></div>
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Address</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{student.address || 'N/A'}</dd></div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Admission Date</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{new Date(student.admissionDate).toLocaleDateString()}</dd></div>
+            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"><dt className="text-sm font-medium text-gray-500">Admission Date</dt><dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{student.admissionDate ? new Date(student.admissionDate).toLocaleDateString() : 'N/A'}</dd></div>
           </dl>
         </div>
       </div>

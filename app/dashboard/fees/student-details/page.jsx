@@ -15,6 +15,7 @@ export default function StudentFeeDetailsPage() {
     fetch("/api/students?all=true")
       .then((res) => res.json())
       .then((data) => setStudents(Array.isArray(data) ? data : []))
+      .catch((err) => console.error('Failed to load students:', err))
       .finally(() => setLoading(false));
   }, []);
 

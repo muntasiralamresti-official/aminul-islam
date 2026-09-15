@@ -8,7 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import toast from 'react-hot-toast';
 
 const DASHBOARD_CACHE_KEY = 'aminul-islam-dashboard-cache';
-const DASHBOARD_CACHE_TTL = 15000;
+const DASHBOARD_CACHE_TTL = 60000; // 60 seconds
 
 function DashboardLoading() {
   return (

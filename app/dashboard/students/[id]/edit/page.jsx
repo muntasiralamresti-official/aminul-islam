@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { uploadStudentPhoto } from '@/lib/imagekit-client';
 
 export default function EditStudentPage({ params }) {
@@ -16,25 +17,30 @@ export default function EditStudentPage({ params }) {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/students/${id}`).then(res => res.json()),
+      fetch(`/api/students/${id}`).then(res => {
+        if (!res.ok) throw new Error('Student not found');
+        return res.json();
+      }),
       fetch('/api/batches').then(res => res.json())
     ]).then(([studentData, batchesData]) => {
       setFormData({
-        name: studentData.name,
-        rollNumber: studentData.rollNumber,
-        phone: studentData.phone,
-        guardianPhone: studentData.guardianPhone,
-        address: studentData.address,
-        classLevel: studentData.classLevel,
+        name: studentData.name || '',
+        rollNumber: studentData.rollNumber || '',
+        phone: studentData.phone || '',
+        guardianPhone: studentData.guardianPhone || '',
+        address: studentData.address || '',
+        classLevel: studentData.classLevel || '',
         batch: studentData.batch?._id || '',
         monthlyFee: studentData.monthlyFee || '',
         photo: studentData.photo || '',
         photoUrl: studentData.photoUrl || '',
-        status: studentData.status
+        status: studentData.status || 'active'
       });
       setPhotoPreview(studentData.photoUrl || studentData.photo || '');
-      setBatches(batchesData);
-    }).catch(err => console.error(err)).finally(() => setFetching(false));
+      setBatches(Array.isArray(batchesData) ? batchesData : []);
+    }).catch(err => {
+      toast.error(err.message || 'Failed to load student data');
+    }).finally(() => setFetching(false));
   }, [id]);
 
   useEffect(() => () => {
@@ -46,6 +52,7 @@ export default function EditStudentPage({ params }) {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5MB'); return; }
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
@@ -53,6 +60,7 @@ export default function EditStudentPage({ params }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const toastId = toast.loading(photoFile ? 'Uploading photo...' : 'Saving changes...');
     try {
       let photoUrl = formData.photoUrl;
       if (photoFile) photoUrl = await uploadStudentPhoto(photoFile);
@@ -65,15 +73,15 @@ export default function EditStudentPage({ params }) {
       });
 
       if (res.ok) {
+        toast.success('Student updated successfully', { id: toastId });
         router.push(`/dashboard/students/${id}`);
         router.refresh();
       } else {
         const errorData = await res.json();
-        alert(errorData.error || 'Something went wrong');
+        toast.error(errorData.error || 'Something went wrong', { id: toastId });
       }
     } catch (error) {
-      console.error(error);
-      alert(error.message || 'Failed to update student');
+      toast.error(error.message || 'Failed to update student', { id: toastId });
     } finally {
       setLoading(false);
     }

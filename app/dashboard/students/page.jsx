@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
-const STUDENTS_CACHE_TTL = 30000;
+const STUDENTS_CACHE_TTL = 120000; // 2 minutes
 const getCacheKey = (page, search) => `aminul-islam-students-${page}-${search}`;
 
 function StudentsContent() {
@@ -48,7 +48,7 @@ function StudentsContent() {
       if (value) params.set("search", value);
       const query = params.toString();
       router.replace(query ? `/dashboard/students?${query}` : "/dashboard/students");
-    }, 350);
+    }, 500);
     return () => clearTimeout(timer);
   }, [searchInput, searchQuery, router]);
 
@@ -278,7 +278,7 @@ function StudentsContent() {
                           />
                         ) : (
                           <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                            {student.name.charAt(0)}
+                            {student.name?.charAt(0) || '?'}
                           </div>
                         )}
                       </div>

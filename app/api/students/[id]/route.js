@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import connectMongo from '@/lib/db';
 import Student from '@/models/Student';
-import Batch from '@/models/Batch';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
     await connectMongo();
-    const student = await Student.findById(id).populate('batch');
+    const student = await Student.findById(id).populate('batch').lean();
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }

@@ -52,7 +52,14 @@ export default function ReportsPage() {
 
       {loading ? (
         <div className="flex justify-center py-20 text-gray-500">Loading reports...</div>
-      ) : data && (
+      ) : !data ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+          <AlertCircle className="mx-auto h-8 w-8 text-red-500" />
+          <h2 className="mt-3 text-lg font-semibold text-red-900">Couldn&apos;t load financial report</h2>
+          <p className="mt-1 text-sm text-red-700">There was an error fetching the data.</p>
+          <button onClick={() => fetchReport(year)} className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Retry</button>
+        </div>
+      ) : (
         <div className="space-y-8">
           
           {/* Summary Cards */}
@@ -63,7 +70,7 @@ export default function ReportsPage() {
               </div>
               <div className="ml-5">
                 <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Yearly Collection ({data.year})</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">৳ {data.yearlyCollected.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">৳ {(data.yearlyCollected || 0).toLocaleString()}</p>
               </div>
             </div>
             
@@ -73,8 +80,8 @@ export default function ReportsPage() {
               </div>
               <div className="ml-5">
                 <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Yearly Due ({data.year})</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">৳ {data.yearlyDue.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">Out of expected ৳{data.yearlyExpected.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">৳ {(data.yearlyDue || 0).toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-1">Out of expected ৳{(data.yearlyExpected || 0).toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -84,7 +91,7 @@ export default function ReportsPage() {
             <h2 className="text-lg font-semibold text-gray-800 mb-6">Monthly Breakdown</h2>
             <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={data.monthlyData || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(value) => `৳${value}`} />
@@ -113,12 +120,12 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {data.monthlyData.map((row, i) => (
+                  {(data.monthlyData || []).map((row, i) => (
                     <tr key={i} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.fullMonth}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">৳ {row.expected.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">৳ {row.collected.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">৳ {row.due.toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">৳ {(row.expected || 0).toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">৳ {(row.collected || 0).toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">৳ {(row.due || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

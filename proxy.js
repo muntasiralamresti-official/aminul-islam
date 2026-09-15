@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // NextAuth owns its own authentication endpoints.
-  if (pathname.startsWith("/api/auth/") || pathname.startsWith("/api/migrate-images")) {
+  if (pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
 

@@ -43,5 +43,6 @@ const PaymentSchema = new mongoose.Schema(
 PaymentSchema.index({ year: 1, month: 1, status: 1 });
 PaymentSchema.index({ student: 1, status: 1, year: 1, month: 1 });
 PaymentSchema.index({ date: -1 });
+PaymentSchema.index({ status: 1, date: -1 });
 
 export default mongoose.models.Payment || mongoose.model('Payment', PaymentSchema);

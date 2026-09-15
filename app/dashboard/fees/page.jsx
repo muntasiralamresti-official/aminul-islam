@@ -138,13 +138,18 @@ export default function FeesPage() {
     catch (err) { toast.error(err.message || "Error deleting payment", { id: toastId }); }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault(); const amount = Number(formData.amount);
+  const submitPayment = async () => {
+    const amount = Number(formData.amount);
     if (!formData.student) return toast.error("Please select a student");
     if (!Number.isFinite(amount) || amount <= 0) return toast.error("Please enter a valid payment amount");
     const toastId = toast.loading(editMode ? "Updating payment..." : "Recording payment...");
     try { const url = editMode ? `/api/payments/${editingId}` : "/api/payments"; const res = await fetch(url, { method: editMode ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...formData, amount }) }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || "Failed to save payment"); toast.success(editMode ? "Payment updated" : "Payment recorded", { id: toastId }); setShowModal(false); await fetchInitialData(); router.refresh(); }
     catch (err) { toast.error(err.message || "Failed to save payment", { id: toastId }); }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    await submitPayment();
   };
 
   const selectedStudentSummary = summary?.students?.find((student) => student._id === formData.student);
@@ -187,7 +192,8 @@ export default function FeesPage() {
                     placeholder="Search by name or roll number..."
                     value={showStudentDropdown ? modalStudentSearch : (selectedStudentObj ? `${selectedStudentObj.name} (${selectedStudentObj.rollNumber})` : "")}
                     onChange={(e) => { setModalStudentSearch(e.target.value); setShowStudentDropdown(true); if (!e.target.value) setFormData({ ...formData, student: "" }); }}
-                    onFocus={() => { setShowStudentDropdown(true); setModalStudentSearch(""); }}
+                    onFocus={() => { setShowStudentDropdown(true); }}
+                    onBlur={() => setTimeout(() => setShowStudentDropdown(false), 200)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     autoComplete="off"
                   />
@@ -222,14 +228,14 @@ export default function FeesPage() {
               <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm font-medium text-gray-700">Payment Method</label><select value={formData.method} onChange={(e) => setFormData({ ...formData, method: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm capitalize text-gray-900">{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method}</option>)}</select></div><div><label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label><select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900"><option value="paid">Paid</option><option value="due">Due / Not Collected</option></select></div></div>
               <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button type="button" onClick={(e) => { if (!formData.student) { toast.error("Please select a student"); return; } handleSubmit(e); }} className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">{editMode ? "Update Payment" : "Record Payment"}</button>
+                <button type="button" onClick={submitPayment} className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">{editMode ? "Update Payment" : "Record Payment"}</button>
               </div>
             </form>
           </div>
         </div>
       );
     })()}
-    <ConfirmDialog open={Boolean(deleteId)} title="Delete payment?" message="This payment record will be permanently deleted and the fee summary will be recalculated." confirmText="Delete Payment" cancelText="Cancel" danger onCancel={() => setDeleteId(null)} onConfirm={handleDelete} />
+    <ConfirmDialog open={Boolean(deleteId)} title="Delete payment?" message="This payment record will be permanently deleted and the fee summary will be recalculated." confirmLabel="Delete Payment" cancelLabel="Cancel" danger onCancel={() => setDeleteId(null)} onConfirm={handleDelete} />
   </div>;
 }
 

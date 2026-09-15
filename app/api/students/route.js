@@ -4,7 +4,7 @@ import Student from '@/models/Student';
 import Batch from '@/models/Batch';
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const studentListFields = 'name rollNumber phone guardianPhone batch status photoUrl createdAt';
+const studentListFields = 'name rollNumber phone guardianPhone batch status photoUrl photo createdAt';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,12 +81,34 @@ export async function POST(request) {
     const body = await request.json();
     await connectMongo();
 
-    const existing = await Student.findOne({ rollNumber: body.rollNumber }).select('_id').lean();
-    if (existing) {
-      return NextResponse.json({ error: 'Roll number already exists' }, { status: 400 });
+    const name = String(body.name ?? '').trim();
+    if (!name) {
+      return NextResponse.json({ error: 'Student name is required' }, { status: 400 });
     }
 
-    const student = await Student.create(body);
+    const studentData = { name, status: body.status === 'inactive' ? 'inactive' : 'active' };
+    const optionalStringFields = ['rollNumber', 'phone', 'guardianPhone', 'address', 'classLevel', 'photo', 'photoUrl'];
+
+    for (const field of optionalStringFields) {
+      const value = String(body[field] ?? '').trim();
+      if (value) studentData[field] = value;
+    }
+
+    if (body.monthlyFee !== '' && body.monthlyFee !== null && body.monthlyFee !== undefined) {
+      const monthlyFee = Number(body.monthlyFee);
+      if (Number.isFinite(monthlyFee)) studentData.monthlyFee = monthlyFee;
+    }
+
+    if (body.batch) studentData.batch = body.batch;
+
+    if (studentData.rollNumber) {
+      const existing = await Student.findOne({ rollNumber: studentData.rollNumber }).select('_id').lean();
+      if (existing) {
+        return NextResponse.json({ error: 'Roll number already exists' }, { status: 400 });
+      }
+    }
+
+    const student = await Student.create(studentData);
     return NextResponse.json(student, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });

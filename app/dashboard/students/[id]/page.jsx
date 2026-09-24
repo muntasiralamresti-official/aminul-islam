@@ -11,9 +11,21 @@ export default function StudentProfilePage({ params }) {
   const { id } = use(params);
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [paymentHistory, setPaymentHistory] = useState([]);
 
   useEffect(() => {
-    fetch(`/api/students/${id}`).then((res) => res.json()).then(setStudent).catch(console.error).finally(() => setLoading(false));
+    Promise.all([
+      fetch(`/api/students/${id}`).then((res) => res.json()),
+      fetch(`/api/fees/student/${id}`).then((res) => res.json())
+    ])
+      .then(([studentData, feeData]) => {
+        setStudent(studentData);
+        if (feeData?.paymentHistory) {
+          setPaymentHistory(feeData.paymentHistory);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [id]);
 
   if (loading) return <div className="mx-auto max-w-4xl space-y-4 p-4"><div className="h-8 w-48 animate-pulse rounded-xl bg-slate-200" /><div className="h-64 animate-pulse rounded-[26px] bg-slate-100" /><div className="h-52 animate-pulse rounded-[26px] bg-slate-100" /></div>;
@@ -28,6 +40,33 @@ export default function StudentProfilePage({ params }) {
     <section className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-sm no-print"><div className="bg-gradient-to-br from-slate-50 via-blue-50/70 to-white p-4 sm:p-6"><div className="flex items-center gap-4"><div className="relative shrink-0">{photo ? <img src={photo} alt={student.name} className="h-20 w-20 rounded-full border-4 border-white object-cover shadow-md sm:h-24 sm:w-24" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-700 sm:h-24 sm:w-24">{student.name?.charAt(0) || "S"}</div>}<span className={`absolute bottom-1 right-1 h-5 w-5 rounded-full border-[3px] border-white ${active ? "bg-emerald-500" : "bg-slate-400"}`} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="truncate text-2xl font-bold text-slate-950 sm:text-3xl">{student.name}</h2><p className="text-sm text-slate-500">ID: #{student.rollNumber}</p></div><span className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase ${active ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{student.status}</span></div></div></div><div className="mt-5 grid grid-cols-1 gap-2.5 text-sm text-slate-700 sm:grid-cols-3"><div className="rounded-xl bg-white/75 px-3 py-2.5 ring-1 ring-slate-200/70">{student.batch?.subject || "Academic"} • {student.classLevel || "Class"}</div><div className="rounded-xl bg-white/75 px-3 py-2.5 ring-1 ring-slate-200/70">{student.batch?.name || "No batch"}</div><div className="rounded-xl bg-white/75 px-3 py-2.5 ring-1 ring-slate-200/70">Monthly fee {money(student.monthlyFee)}</div></div></div><div className="divide-y divide-slate-100 px-4 sm:px-6"><InfoRow icon={UsersRound} label="Full Name" value={student.name} /><InfoRow icon={Phone} label="Contact" value={student.phone || "N/A"} action={student.phone ? <a href={`tel:${student.phone}`} className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600"><Phone className="h-4 w-4" /></a> : null} /><InfoRow icon={Mail} label="Email" value={student.email || "N/A"} /><InfoRow icon={MapPin} label="Address" value={student.address || "N/A"} /><InfoRow icon={CalendarDays} label="Admission Date" value={student.admissionDate ? new Date(student.admissionDate).toLocaleDateString("en-BD") : "N/A"} /></div><div className="border-t border-slate-100 p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-slate-500" /><span className="font-semibold">Status</span></div><span className={`rounded-full px-4 py-2 text-sm font-bold uppercase ${active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{student.status}</span></div></div></section>
 
     <section className="mt-4 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm no-print"><p className="mb-3 font-semibold text-slate-900">Actions</p><div className="grid grid-cols-3 gap-3"><div className="flex min-h-20 flex-col items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><Eye className="h-6 w-6" /><span className="mt-1 text-sm font-semibold">View</span></div><Link href={`/dashboard/students/${student._id}/edit`} className="flex min-h-20 flex-col items-center justify-center rounded-2xl bg-blue-600 text-white"><Edit className="h-6 w-6" /><span className="mt-1 text-sm font-semibold">Edit</span></Link><Link href={`/dashboard/fees?student=${student._id}`} className="flex min-h-20 flex-col items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700"><WalletCards className="h-6 w-6" /><span className="mt-1 text-sm font-semibold">Fees</span></Link></div></section>
+
+    
+    <section className="mt-4 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm no-print">
+      <div className="border-b border-slate-100 p-4 sm:p-5">
+        <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+          <WalletCards className="h-5 w-5 text-blue-600" /> Payment History
+        </h3>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {paymentHistory.length === 0 ? (
+          <div className="p-6 text-center text-sm text-slate-500">No payment records found.</div>
+        ) : (
+          paymentHistory.map((payment) => (
+            <div key={payment._id} className="flex items-center justify-between p-4 hover:bg-slate-50">
+              <div>
+                <p className="font-semibold text-slate-900">{payment.month}, {payment.year}</p>
+                <p className="mt-0.5 text-xs text-slate-500 capitalize">{formatDate(payment.date || payment.createdAt)} � {payment.method || 'Cash'}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-emerald-600">{money(payment.amount)}</p>
+                {payment.discount > 0 && <p className="mt-0.5 text-xs font-medium text-amber-600">Discount: {money(payment.discount)}</p>}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
 
     <StudentIdCardImage student={student} />
   </div>;

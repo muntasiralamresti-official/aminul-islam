@@ -108,7 +108,7 @@ export async function GET() {
     });
 
     const recentActivity = [
-      ...recentPayments.map((payment) => ({ id: `payment-${payment._id}`, type: 'payment', title: `${payment.student?.name || 'Student'}'s fee paid`, detail: `৳${payment.amount?.toLocaleString() || 0}`, date: payment.date || payment.createdAt })),
+      ...recentPayments.map((payment) => ({ id: `payment-${payment._id}`, type: 'payment', title: `${payment.student?.name || 'Student'}'s fee paid`, detail: `৳${payment.amount?.toLocaleString() || 0}`, date: payment.createdAt })),
       ...recentStudents.map((student) => ({ id: `student-${student._id}`, type: 'student', title: `${student.name} added to ${student.batch?.name || 'a batch'}`, detail: 'New student', date: student.createdAt })),
       ...recentAttendance.map((record) => ({ id: `attendance-${record._id}`, type: 'attendance', title: 'Attendance marked', detail: record.batch?.name || 'Batch attendance', date: record.createdAt })),
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);

@@ -16,6 +16,10 @@ const PaymentSchema = new mongoose.Schema(
       required: [true, 'Please provide year'],
       default: () => new Date().getFullYear(),
     },
+    discount: {
+      type: Number,
+      default: 0,
+    },
     amount: {
       type: Number,
       required: [true, 'Please provide payment amount'],

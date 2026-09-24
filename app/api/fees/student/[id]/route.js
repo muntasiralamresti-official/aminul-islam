@@ -33,8 +33,8 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const payments = await Payment.find({ student: student._id, status: "paid" })
-      .select("month year amount method date status createdAt")
+    const payments = await Payment.find({ student: student._id })
+      .select("month year amount discount method date status createdAt")
       .sort({ date: -1, createdAt: -1 })
       .lean();
 
@@ -56,7 +56,8 @@ export async function GET(request, { params }) {
       const monthIndex = MONTHS.indexOf(payment.month);
       if (monthIndex < 0 || !Number.isFinite(Number(payment.year))) continue;
       const key = periodIndex(Number(payment.year), monthIndex);
-      const amount = Number(payment.amount) || 0;
+      const amount = (Number(payment.amount) || 0) + (Number(payment.discount) || 0);
+      if (payment.status !== "paid") continue;
       paidByPeriod.set(key, (paidByPeriod.get(key) || 0) + amount);
       totalPaidAllTime += amount;
     }
@@ -96,6 +97,7 @@ export async function GET(request, { params }) {
     const totalOutstanding = previousDue + yearDue;
 
     const methodTotals = payments.reduce((acc, payment) => {
+      if (payment.status !== "paid") return acc;
       const method = payment.method || "other";
       acc[method] = (acc[method] || 0) + (Number(payment.amount) || 0);
       return acc;

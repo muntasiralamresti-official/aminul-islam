@@ -198,7 +198,7 @@ export default function EditPaymentPage({ params }) {
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Amount</label>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Amount Paid (?)</label>
               <input
                 required
                 min="1"
@@ -207,6 +207,18 @@ export default function EditPaymentPage({ params }) {
                 value={formData.amount}
                 onChange={(event) => setFormData((current) => ({ ...current, amount: event.target.value }))}
                 placeholder="e.g. 1000"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-sm text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-gray-700">Discount/Waiver (?)</label>
+              <input
+                min="0"
+                step="0.01"
+                type="number"
+                value={formData.discount}
+                onChange={(event) => setFormData((current) => ({ ...current, discount: event.target.value }))}
+                placeholder="Optional discount"
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-sm text-gray-900"
               />
             </div>

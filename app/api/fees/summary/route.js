@@ -39,14 +39,7 @@ export async function GET(request) {
     const defaultFee = Number(setting?.defaultFee ?? 1000) || 1000;
     const studentIds = students.map((student) => student._id);
 
-    const payments = studentIds.length
-      ? await Payment.find({
-          status: 'paid',
-          student: { $in: studentIds },
-        })
-          .select('student month year amount date')
-          .lean()
-      : [];
+    const payments = await Payment.find({ status: 'paid' }).select('student month year amount discount date').lean();
 
     const paymentTotals = new Map();
     for (const payment of payments) {
@@ -61,7 +54,7 @@ export async function GET(request) {
         currentPaid: 0,
         latestPayment: null,
       };
-      const amount = Number(payment.amount) || 0;
+      const amount = (Number(payment.amount) || 0) + (Number(payment.discount) || 0);
 
       // Only payments up to the selected period contribute to the fee balance.
       if (paymentPeriod <= selectedPeriod) {
@@ -117,6 +110,7 @@ export async function GET(request) {
         rollNumber: student.rollNumber,
         batch: student.batch,
         monthlyFee,
+        hasCustomFee: student.monthlyFee != null,
         expected: currentExpected,
         paid: paid.currentPaid,
         currentDue,
@@ -129,7 +123,7 @@ export async function GET(request) {
 
     const summary = rows.reduce((acc, row) => {
       acc.totalExpected += row.expected;
-      acc.totalCollected += row.paid;
+      // totalCollected will be calculated separately from ALL payments to ensure it matches the actual cash collected
       acc.currentDue += row.currentDue;
       acc.previousDue += row.previousDue;
       if (row.paymentStatus === 'paid') acc.paidStudents += 1;
@@ -145,6 +139,15 @@ export async function GET(request) {
       unpaidStudents: 0,
       partialPayments: 0,
     });
+
+    
+    let trueTotalCollected = 0;
+    for (const p of payments) {
+      if (p.month === month && Number(p.year) === year) {
+        trueTotalCollected += Number(p.amount) || 0;
+      }
+    }
+    summary.totalCollected = trueTotalCollected;
 
     return NextResponse.json({
       month,

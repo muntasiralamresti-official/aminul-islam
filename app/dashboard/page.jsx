@@ -5,9 +5,49 @@ import Link from 'next/link';
 import { Users, CreditCard, AlertCircle, CheckCircle2, XCircle, CalendarCheck, WalletCards, Activity, GraduationCap } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const DASHBOARD_CACHE_KEY = 'aminul-islam-dashboard-cache';
 const DASHBOARD_CACHE_TTL = 60000; // 60 seconds
+
+
+function PaymentMethodChart({ methodTotals }) {
+  const data = [
+    { name: 'Cash', value: methodTotals?.cash || 0, color: '#10b981' },
+    { name: 'bKash', value: methodTotals?.bkash || 0, color: '#e11d48' },
+    { name: 'Nagad', value: methodTotals?.nagad || 0, color: '#f59e0b' },
+    { name: 'Bank', value: methodTotals?.bank || 0, color: '#3b82f6' },
+  ].filter(d => d.value > 0);
+
+  if (data.length === 0) return <div className="py-12 text-center text-sm text-gray-500">No payment data available this month.</div>;
+
+  return (
+    <div className="h-64 w-full mt-4">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={80}
+            paddingAngle={5}
+            dataKey="value"
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip 
+            formatter={(value) => `? ${value.toLocaleString('en-BD')}`}
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+          />
+          <Legend verticalAlign="bottom" height={36} iconType="circle" />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 function DashboardLoading() {
   return (
@@ -23,7 +63,7 @@ function DashboardLoading() {
           </div>
         ))}
       </div>
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4 lg:gap-6">
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6 lg:col-span-2">
           <div className="h-5 w-48 rounded bg-gray-200" /><div className="mt-5 h-72 rounded-xl bg-gray-100" />
         </div>
@@ -215,9 +255,23 @@ export default function Dashboard() {
             {stats.recentActivity?.length ? <div className="space-y-2">{stats.recentActivity.map((activity) => { const config = activityConfig[activity.type] || activityConfig.student; const Icon = config.icon; return <div key={activity.id} className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-gray-50"><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${config.iconClass}`}><Icon className="h-4 w-4" /></div><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-gray-800">{activity.title}</p><div className="mt-0.5 flex items-center justify-between gap-2"><p className="truncate text-xs text-gray-500">{activity.detail}</p><span className="shrink-0 text-[11px] text-gray-400">{formatRelativeTime(activity.date)}</span></div></div></div>; })}</div> : <div className="py-10 text-center"><Activity className="mx-auto h-9 w-9 text-gray-300" /><p className="mt-3 text-sm text-gray-500">No recent activity yet.</p></div>}
           </div>
         </div>
-      </div>
 
-      <div className="dashboard-panel mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
+          <div className="dashboard-panel rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-gray-900">Payment Methods</h2>
+                <p className="mt-1 text-sm text-gray-500">Collection breakdown</p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400">
+                <WalletCards className="h-5 w-5" />
+              </div>
+            </div>
+            <PaymentMethodChart methodTotals={stats.methodTotals} />
+          </div>
+
+        </div>
+
+        <div className="dashboard-panel mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
         <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold tracking-tight text-gray-900">Quick Actions</h2><p className="mt-1 text-sm text-gray-500">Common tasks you may need today.</p></div></div>
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Link href="/dashboard/students/new" className="quick-action-card group flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-4 transition-all hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Users className="h-5 w-5" /></div><span className="text-sm font-semibold text-gray-900">Add New Student</span></Link>

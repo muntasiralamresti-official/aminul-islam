@@ -97,10 +97,10 @@ export async function GET() {
     const payments = paymentMetrics[0] || { today: [], currentMonth: [], trend: [] };
     const totalStudents = metrics.totalStudents || 0;
     const activeStudents = metrics.activeStudents || 0;
-    const collectionThisMonth = payments.currentMonth[0]?.total || 0;
+    
     const todayCollection = payments.today[0]?.total || 0;
-    const expectedCollection = metrics.feeWithValue + Math.max(activeStudents - metrics.studentsWithValue, 0) * defaultFee;
-    const totalDue = Math.max(expectedCollection - collectionThisMonth, 0);
+    
+    
     const attendance = attendanceSummary[0] || { marked: 0, present: 0, absent: 0 };
     const formattedTrend = monthsOrder.map((month) => {
       const found = payments.trend.find((item) => item._id === month);
@@ -113,7 +113,47 @@ export async function GET() {
       ...recentAttendance.map((record) => ({ id: `attendance-${record._id}`, type: 'attendance', title: 'Attendance marked', detail: record.batch?.name || 'Batch attendance', date: record.createdAt })),
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
 
-    return NextResponse.json({ totalStudents, activeStudents, totalBatches: batchCount, todayCollection, collectionThisMonth, totalDue, currentMonth, todayAttendance: attendance.marked, presentToday: attendance.present, absentToday: attendance.absent, monthlyFinancial: { expected: expectedCollection, collected: collectionThisMonth, due: totalDue }, trend: formattedTrend, recentActivity });
+    
+    // Accurately calculate expected and due like fees/summary
+    const activeStudentsList = await Student.find({ status: 'active' }).select('monthlyFee admissionDate').lean();
+    let expectedCollection = 0;
+    let actualDue = 0;
+    
+    // We need payment totals per student for the current month to calculate due accurately
+    const currentPeriod = currentYear * 12 + monthsOrder.indexOf(currentMonth);
+    const paymentsForDue = await Payment.find({ month: currentMonth, year: currentYear, status: 'paid' }).select('student amount discount method').lean();
+    const paidByStudent = {};
+    let collectionThisMonthAll = 0;
+    
+    const methodTotals = { cash: 0, bkash: 0, nagad: 0, bank: 0 };
+    for (const p of paymentsForDue) {
+      collectionThisMonthAll += p.amount;
+      const method = (p.method || 'cash').toLowerCase();
+      if (methodTotals[method] !== undefined) methodTotals[method] += p.amount;
+      else methodTotals[method] = p.amount;
+      
+      if (p.student) {
+        paidByStudent[p.student] = (paidByStudent[p.student] || 0) + p.amount + (p.discount || 0);
+      }
+    }
+
+    for (const student of activeStudentsList) {
+      const monthlyFee = Number(student.monthlyFee ?? defaultFee) || 0;
+      const admissionDate = student.admissionDate ? new Date(student.admissionDate) : null;
+      const admissionPeriod = admissionDate ? (admissionDate.getFullYear() * 12 + admissionDate.getMonth()) : currentPeriod;
+      
+      const expected = admissionPeriod <= currentPeriod ? monthlyFee : 0;
+      expectedCollection += expected;
+      
+      const paid = paidByStudent[student._id] || 0;
+      actualDue += Math.max(expected - paid, 0);
+    }
+    
+    // We update collectionThisMonth to match the actual total collected 
+    const collectionThisMonth = collectionThisMonthAll;
+    const totalDue = actualDue;
+
+    return NextResponse.json({ totalStudents, activeStudents, totalBatches: batchCount, todayCollection, collectionThisMonth, totalDue, currentMonth, todayAttendance: attendance.marked, presentToday: attendance.present, absentToday: attendance.absent, monthlyFinancial: { expected: expectedCollection, collected: collectionThisMonth, due: totalDue }, trend: formattedTrend, recentActivity, methodTotals });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

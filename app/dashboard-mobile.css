@@ -35,3 +35,70 @@
 .page-transition .overflow-x-auto:has(table thead th:nth-child(8)) { overflow-x: auto !important; overflow-y: hidden !important; }
 .page-transition .overflow-x-auto:has(table thead th:nth-child(8)) table { display: table !important; width: max-content !important; min-width: max-content !important; }
 }
+
+/* PWA visual refresh: app shell, bottom navigation, drawer */
+@media (max-width: 1023px) {
+  .pwa-menu-item-active {
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  }
+
+  .native-tab::before {
+    content: "";
+    position: absolute;
+    inset: 5px 9px auto;
+    height: 32px;
+    border-radius: 14px;
+    opacity: 0;
+    transform: scale(.88);
+    transition: opacity .2s ease, transform .2s ease;
+    background: rgba(37,99,235,.09);
+  }
+
+  .native-tab-icon-active {
+    position: relative;
+    z-index: 1;
+    color: #2563eb;
+    background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%);
+    box-shadow: inset 0 0 0 1px rgba(96,165,250,.18), 0 5px 14px rgba(37,99,235,.10);
+  }
+
+  .native-tab:has(.native-tab-icon-active)::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .native-tab-icon {
+    color: #64748b;
+  }
+
+  .native-tab:hover .native-tab-icon {
+    color: #2563eb;
+  }
+
+  main {
+    background:
+      radial-gradient(circle at 0 0, rgba(59,130,246,.06), transparent 28%),
+      radial-gradient(circle at 100% 100%, rgba(99,102,241,.05), transparent 30%),
+      #f8fafc;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-transition > :first-child {
+    margin-top: .15rem;
+  }
+
+  .dashboard-screen .dashboard-stat-card,
+  .dashboard-screen .dashboard-panel,
+  .quick-action-card {
+    box-shadow: 0 8px 26px rgba(15,23,42,.055);
+    border-color: rgba(226,232,240,.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .native-tab::before,
+  .native-tab-icon-active {
+    transition: none;
+  }
+}

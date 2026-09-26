@@ -8,8 +8,6 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
 
@@ -157,46 +155,44 @@ export default function FeesPage() {
   useEffect(() => { if (historyPage > historyTotalPages) setHistoryPage(historyTotalPages); }, [historyPage, historyTotalPages]);
 
   const clearStudentFilters = () => { setBatchFilter(""); setStudentFilter(""); setStudentSearch(""); setPaymentDateFilter(""); setPaymentStatusFilter(""); setStudentPage(1); };
-  const pdfRows = useMemo(() => {
-    const rows = filteredStudents.map((student, index) => ({
-      serial: index + 1, name: student.name || "—", roll: student.rollNumber || "—",
-      batch: student.batch?.name || "—", monthlyFee: Number(student.monthlyFee || 0),
-      paid: Number(student.paid || 0), previousDue: Number(student.previousDue || 0),
-      currentDue: Number(student.currentDue || 0), totalDue: Number(student.totalDue || 0),
-      status: student.paymentStatus || "unpaid",
-    }));
-    return pdfStatusFilter === "all" ? rows : rows.filter((row) => row.status === pdfStatusFilter);
-  }, [filteredStudents, pdfStatusFilter]);
-
-  const downloadFeePdf = () => {
-    if (pdfDownloading || !pdfRows.length) return;
+  const downloadFeePdf = async () => {
+    if (pdfDownloading) return;
     setPdfDownloading(true);
     try {
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const statusLabel = pdfStatusFilter === "all" ? "All Students" : pdfStatusFilter === "paid" ? "Paid Students" : pdfStatusFilter === "partial" ? "Partial Payments" : "Unpaid Students";
-      doc.setFont("helvetica", "bold"); doc.setFontSize(18);
-      doc.text("Aminul Islam Coaching Center", 14, 14);
-      doc.setFontSize(13); doc.text("Fee Collection Report", 14, 22);
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-      doc.text("Period: " + selectedMonth + " " + selectedYear, 14, 29);
-      doc.text("Status: " + statusLabel, 14, 35);
-      doc.text("Students: " + pdfRows.length, 14, 41);
-      autoTable(doc, {
-        startY: 47,
-        head: [["#", "Student", "Roll", "Batch", "Monthly Fee", "Paid", "Previous Due", "Current Due", "Total Due", "Status"]],
-        body: pdfRows.map((row) => [row.serial, row.name, row.roll, row.batch, money(row.monthlyFee), money(row.paid), money(row.previousDue), money(row.currentDue), money(row.totalDue), row.status === "paid" ? "Paid" : row.status === "partial" ? "Partial" : "Unpaid"]),
-        theme: "grid",
-        styles: { fontSize: 8, cellPadding: 2.1, valign: "middle" },
-        headStyles: { fontStyle: "bold" },
-        didDrawPage: (data) => {
-          const h = doc.internal.pageSize.getHeight(); doc.setFontSize(8);
-          doc.text("Page " + data.pageNumber, doc.internal.pageSize.getWidth() - 24, h - 7);
-        },
+      const params = new URLSearchParams({
+        month: selectedMonth,
+        year: String(selectedYear),
+        status: pdfStatusFilter,
       });
-      doc.save("fee-report-" + selectedMonth.toLowerCase() + "-" + selectedYear + "-" + pdfStatusFilter + ".pdf");
-      toast.success(statusLabel + " PDF downloaded");
-    } catch (err) { console.error("Fee PDF error:", err); toast.error("Could not generate PDF"); }
-    finally { setPdfDownloading(false); }
+      if (batchFilter) params.set("batch", batchFilter);
+      if (studentFilter) params.set("student", studentFilter);
+      if (studentSearch.trim()) params.set("search", studentSearch.trim());
+      if (paymentDateFilter) params.set("paymentDate", paymentDateFilter);
+
+      const response = await fetch("/api/fees/pdf?" + params.toString());
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Could not generate PDF");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "fee-report-" + selectedMonth.toLowerCase() + "-" + selectedYear + "-" + pdfStatusFilter + ".pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      const label = pdfStatusFilter === "all" ? "All" : pdfStatusFilter === "paid" ? "Paid" : pdfStatusFilter === "partial" ? "Partial" : "Unpaid";
+      toast.success(label + " fee PDF downloaded");
+    } catch (err) {
+      console.error("Fee PDF error:", err);
+      toast.error(err.message || "Could not generate PDF");
+    } finally {
+      setPdfDownloading(false);
+    }
   };
 
   const openNewPaymentModal = (studentId = "") => {
@@ -282,7 +278,7 @@ export default function FeesPage() {
           <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 font-medium text-amber-700 ring-1 ring-inset ring-amber-200/50">Filtered Due: {money(filteredStats.due)}</span>
         </div>
       )}
-    </div><div className="mb-3 flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold text-gray-700">PDF Report</p><p className="text-[11px] text-gray-500">Exports all filtered students, not only the visible page.</p></div><div className="flex gap-2"><select value={pdfStatusFilter} onChange={(event) => setPdfStatusFilter(event.target.value)} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"><option value="all">All</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option></select><button type="button" onClick={downloadFeePdf} disabled={pdfDownloading || !pdfRows.length} className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"><FileDown className="h-4 w-4" />{pdfDownloading ? "Preparing…" : "Download PDF"}</button></div></div>
+    </div><div className="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-700 shadow-sm ring-1 ring-slate-200"><FileDown className="h-4 w-4" /></div><div><p className="text-sm font-bold text-slate-800">Download fee report</p><p className="mt-0.5 text-xs text-slate-500">PDF will include all matching students, not only the visible page.</p></div></div><div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"><select value={pdfStatusFilter} onChange={(event) => setPdfStatusFilter(event.target.value)} className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="all">All Students</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option></select><button type="button" onClick={downloadFeePdf} disabled={pdfDownloading} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><FileDown className="h-4 w-4" />{pdfDownloading ? "Preparing PDF…" : "Download PDF"}</button></div></div>
       <div className="hidden flex-wrap gap-2 sm:flex"><div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input value={studentSearch} onChange={(event) => setStudentSearch(event.target.value)} placeholder="Search student / roll / batch" className="w-56 rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></div><select value={batchFilter} onChange={(event) => { setBatchFilter(event.target.value); setStudentFilter(""); }} className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900"><option value="">All Batches</option>{batches.map((batch) => <option key={batch._id} value={batch._id}>{batch.name}</option>)}</select><select value={studentFilter} onChange={(event) => setStudentFilter(event.target.value)} className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900"><option value="">All Students</option>{(summary?.students || []).filter((student) => batchFilter ? student.batch?._id === batchFilter : true).map((student) => <option key={student._id} value={student._id}>{student.name} ({student.rollNumber})</option>)}</select><input type="date" value={paymentDateFilter} onChange={(event) => setPaymentDateFilter(event.target.value)} title="Filter by last payment date" className="rounded-lg border border-gray-300 py-2.5 text-sm text-gray-900" /><select value={paymentStatusFilter} onChange={(event) => setPaymentStatusFilter(event.target.value)} className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900"><option value="">All Payment Status</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option><option value="not-set">Fee Not Set</option></select><button onClick={clearStudentFilters} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100">Clear</button></div><button onClick={() => setShowFilters(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-700 sm:hidden"><SlidersHorizontal className="h-4 w-4" /> Filters {activeFilterCount > 0 && <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white">{activeFilterCount}</span>}</button></div></div><div className="flex flex-col gap-2 border-b border-gray-100 bg-gray-50/80 px-4 py-3 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between"><span>Showing {filteredStudents.length ? ((studentPage - 1) * studentPageSize) + 1 : 0}–{Math.min(studentPage * studentPageSize, filteredStudents.length)} of {filteredStudents.length}{hasStudentFilters ? " matching" : ""} students</span><label className="flex items-center gap-2">Rows per page<select value={studentPageSize} onChange={(event) => setStudentPageSize(Number(event.target.value))} className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700"><option value="10">10</option><option value="20">20</option></select></label></div>
       <div className="hidden overflow-x-auto sm:block"><table className="min-w-[1180px] w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr>{['#', 'Student', 'Batch', 'Monthly Fee', 'Paid', 'Previous Due', 'Current Due', 'Last Payment', 'Last Amount', 'Status', 'Action'].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">{heading}</th>)}</tr></thead><tbody className="divide-y divide-gray-100 bg-white">{paginatedStudents.map((student, index) => <tr key={student._id} className="hover:bg-gray-50"><td className="px-4 py-3.5 text-sm text-gray-400">{(studentPage - 1) * studentPageSize + index + 1}</td><td className="px-4 py-3.5"><div className="font-semibold text-gray-900">{student.name}</div><div className="text-xs text-gray-500">Roll: {student.rollNumber}</div></td><td className="px-4 py-3.5 text-sm text-gray-600">{student.batch?.name || "—"}</td><td className="px-4 py-3.5 text-right text-sm font-medium text-gray-700">{money(student.monthlyFee)}</td><td className="px-4 py-3.5 text-right text-sm font-semibold text-emerald-700">{money(student.paid)}</td><td className="px-4 py-3.5 text-right text-sm font-semibold text-amber-700">{money(student.previousDue)}</td><td className="px-4 py-3.5 text-right text-sm font-semibold text-blue-700">{money(student.currentDue)}</td><td className="px-4 py-3.5 text-sm text-gray-600">{student.latestPayment ? <><div className="font-medium text-gray-900">{formatDate(student.latestPayment.date)}</div><div className="text-xs text-gray-500">{student.latestPayment.month}, {student.latestPayment.year}</div></> : <span className="text-gray-400">No payment</span>}</td><td className="px-4 py-3.5 text-right text-sm font-semibold text-emerald-700">{student.latestPayment ? money(student.latestPayment.amount) : "—"}</td><td className="px-4 py-3.5 text-center"><StatusBadge status={student.paymentStatus} /></td><td className="px-4 py-3.5"><button onClick={(event) => openNewPaymentModal(student._id, event.currentTarget)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100"><Plus className="h-3.5 w-3.5" /> Payment</button></td></tr>)}{paginatedStudents.length === 0 && <tr><td colSpan="11" className="px-4 py-10 text-center text-sm text-gray-500">No students found for the selected filters.</td></tr>}</tbody></table></div>
       <div className="divide-y divide-gray-100 sm:hidden">{paginatedStudents.map((student, index) => <article key={student._id} className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-base font-bold text-gray-900">{student.name}</h3><p className="mt-0.5 text-xs text-gray-500">Roll: {student.rollNumber} · {student.batch?.name || "No batch"}</p></div><StatusBadge status={student.paymentStatus} /></div><div className="mt-4 grid grid-cols-2 gap-2"><InfoMetric label="Monthly Fee" value={money(student.monthlyFee)} /><InfoMetric label="Paid" value={money(student.paid)} /><InfoMetric label="Previous Due" value={money(student.previousDue)} /><InfoMetric label="Current Due" value={money(student.currentDue)} /></div><div className="mt-3 rounded-xl bg-gray-50 p-3"><div className="flex items-center justify-between gap-3 text-xs text-gray-500"><span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> Last payment</span><span className="font-semibold text-gray-800">{student.latestPayment ? formatDate(student.latestPayment.date) : "No payment"}</span></div><div className="mt-2 flex items-center justify-between gap-3 text-xs text-gray-500"><span>Last amount</span><span className="font-bold text-emerald-700">{student.latestPayment ? money(student.latestPayment.amount) : "—"}</span></div></div><button onClick={(event) => openNewPaymentModal(student._id, event.currentTarget)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700"><Plus className="h-4 w-4" /> Record Payment for {student.name}</button><p className="mt-2 text-center text-[11px] text-gray-400">Student {((studentPage - 1) * studentPageSize) + index + 1} of {filteredStudents.length}</p></article>)}{paginatedStudents.length === 0 && <div className="px-4 py-10 text-center text-sm text-gray-500">No students found for the selected filters.</div>}</div>

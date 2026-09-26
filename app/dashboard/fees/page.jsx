@@ -395,6 +395,7 @@ function FeePdfReport({ rows, month, year, status }) {
             padding: "38px 42px 34px",
             background: "#ffffff",
             overflow: "hidden",
+            position: "relative",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "14px" }}>
@@ -476,7 +477,7 @@ function FeePdfReport({ rows, month, year, status }) {
             </tbody>
           </table>
 
-          <div style={{ position: "absolute", boxSizing: "border-box", width: "1036px", marginTop: "13px", paddingTop: "8px", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94a3b8" }}>
+          <div style={{ position: "absolute", left: "42px", right: "42px", bottom: "18px", boxSizing: "border-box", paddingTop: "8px", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94a3b8" }}>
             <span>Generated {new Date().toLocaleDateString("en-BD")}</span>
             <span>Aminul Islam Coaching Center</span>
           </div>

@@ -108,13 +108,17 @@ export async function GET(request) {
 
       const paymentPeriod = periodIndex(paymentYear, monthIndex);
       const studentId = String(payment.student);
-      const entry = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
+      const entry = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0, latestPayment: null };
 
       const amount = (Number(payment.amount) || 0) + (Number(payment.discount) || 0);
       if (paymentPeriod <= selectedPeriod) {
         if (paymentPeriod === selectedPeriod) entry.currentPaid += amount;
         else entry.previousPaid += amount;
       }
+
+      const paymentDate = payment.date ? new Date(payment.date) : null;
+      const latestDate = entry.latestPayment?.date ? new Date(entry.latestPayment.date) : null;
+      if (paymentDate && (!latestDate || paymentDate > latestDate)) entry.latestPayment = { date: payment.date };
 
       paymentTotals.set(studentId, entry);
     }
@@ -135,7 +139,7 @@ export async function GET(request) {
         ? monthlyFee * (selectedPeriod - admissionPeriod)
         : 0;
 
-      const paid = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0 };
+      const paid = paymentTotals.get(studentId) || { previousPaid: 0, currentPaid: 0, latestPayment: null };
       const previousDue = Math.max(previousExpected - paid.previousPaid, 0);
       const currentDue = Math.max(currentExpected - paid.currentPaid, 0);
 
@@ -144,6 +148,8 @@ export async function GET(request) {
       else if (paid.currentPaid > 0) paymentStatus = "partial";
 
       return {
+        _id: student._id,
+        batchId: student.batch?._id,
         name: student.name || "—",
         rollNumber: student.rollNumber || "—",
         batch: student.batch?.name || "—",
@@ -153,7 +159,26 @@ export async function GET(request) {
         currentDue,
         totalDue: previousDue + currentDue,
         paymentStatus,
+        latestPayment: paid.latestPayment,
       };
+    });
+
+    const batch = searchParams.get("batch") || "";
+    const student = searchParams.get("student") || "";
+    const search = (searchParams.get("search") || "").trim().toLowerCase();
+    const paymentDateFilter = searchParams.get("paymentDate") || "";
+
+    rows = rows.filter((row) => {
+      if (batch && String(row.batchId || "") !== batch) return false;
+      if (student && String(row._id || "") !== student) return false;
+      if (search && !row.name.toLowerCase().includes(search) && !String(row.rollNumber).toLowerCase().includes(search) && !row.batch.toLowerCase().includes(search)) return false;
+      if (paymentDateFilter) {
+        const date = row.latestPayment?.date ? new Date(row.latestPayment.date) : null;
+        if (!date || Number.isNaN(date.getTime())) return false;
+        const localDate = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+        if (localDate !== paymentDateFilter) return false;
+      }
+      return true;
     });
 
     if (status !== "all") rows = rows.filter((row) => row.paymentStatus === status);

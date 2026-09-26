@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from "react";
+import "@fontsource/noto-sans-bengali";
 import {
   Plus, Edit, Trash2, Wallet, CircleDollarSign, AlertCircle, CheckCircle2,
   Clock3, History, RefreshCw, CalendarDays, SlidersHorizontal, X, Search,
@@ -51,6 +52,7 @@ export default function FeesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [pdfStatusFilter, setPdfStatusFilter] = useState("all");
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const pdfReportRef = useRef(null);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
@@ -157,33 +159,59 @@ export default function FeesPage() {
   const clearStudentFilters = () => { setBatchFilter(""); setStudentFilter(""); setStudentSearch(""); setPaymentDateFilter(""); setPaymentStatusFilter(""); setStudentPage(1); };
   const downloadFeePdf = async () => {
     if (pdfDownloading) return;
+
+    const reportRows = filteredStudents.filter((student) => {
+      if (pdfStatusFilter === "all") return true;
+      return student.paymentStatus === pdfStatusFilter;
+    });
+
+    if (!reportRows.length) {
+      toast.error("No students match the selected PDF filters");
+      return;
+    }
+
     setPdfDownloading(true);
     try {
-      const params = new URLSearchParams({
-        month: selectedMonth,
-        year: String(selectedYear),
-        status: pdfStatusFilter,
-      });
-      if (batchFilter) params.set("batch", batchFilter);
-      if (studentFilter) params.set("student", studentFilter);
-      if (studentSearch.trim()) params.set("search", studentSearch.trim());
-      if (paymentDateFilter) params.set("paymentDate", paymentDateFilter);
+      const [{ jsPDF }, html2canvasModule] = await Promise.all([
+        import("jspdf"),
+        import("html2canvas"),
+      ]);
+      const html2canvas = html2canvasModule.default;
 
-      const response = await fetch("/api/fees/pdf?" + params.toString());
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Could not generate PDF");
+      await document.fonts.ready;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const pages = Array.from(pdfReportRef.current?.querySelectorAll("[data-fee-pdf-page]") || []);
+      if (!pages.length) throw new Error("PDF report could not be prepared");
+
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4",
+        compress: true,
+      });
+
+      for (let index = 0; index < pages.length; index += 1) {
+        const pageElement = pages[index];
+        const canvas = await html2canvas(pageElement, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          logging: false,
+          width: pageElement.scrollWidth,
+          height: pageElement.scrollHeight,
+          windowWidth: pageElement.scrollWidth,
+          windowHeight: pageElement.scrollHeight,
+        });
+
+        const image = canvas.toDataURL("image/jpeg", 0.94);
+        if (index > 0) pdf.addPage();
+        pdf.addImage(image, "JPEG", 0, 0, 841.89, 595.28, undefined, "FAST");
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "fee-report-" + selectedMonth.toLowerCase() + "-" + selectedYear + "-" + pdfStatusFilter + ".pdf";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      const fileName = "fee-report-" + selectedMonth.toLowerCase() + "-" + selectedYear + "-" + pdfStatusFilter + ".pdf";
+      pdf.save(fileName);
 
       const label = pdfStatusFilter === "all" ? "All" : pdfStatusFilter === "paid" ? "Paid" : pdfStatusFilter === "partial" ? "Partial" : "Unpaid";
       toast.success(label + " fee PDF downloaded");
@@ -323,6 +351,14 @@ export default function FeesPage() {
       <Pagination page={studentPage} totalPages={studentTotalPages} onPageChange={setStudentPage} />
     </section>
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"><div className="border-b border-gray-200 p-4 sm:p-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="flex items-center gap-2 text-base font-bold text-gray-900"><History className="h-4 w-4" /> Payment History</h2><p className="mt-1 text-xs text-gray-500">Payments recorded for {selectedMonth} {selectedYear}</p></div><div className="flex flex-col gap-2 sm:flex-row"><input value={historySearch} onChange={(event) => setHistorySearch(event.target.value)} placeholder="Search payment history" className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900" /><input type="date" value={historyDate} onChange={(event) => setHistoryDate(event.target.value)} className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900" /></div></div></div><div className="hidden overflow-x-auto sm:block"><table className="min-w-[900px] w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr>{['Date', 'Student', 'Month', 'Amount', 'Method', 'Status', 'Actions'].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">{heading}</th>)}</tr></thead><tbody className="divide-y divide-gray-100 bg-white">{paginatedHistory.map((payment) => <tr key={payment._id} className="hover:bg-gray-50"><td className="px-4 py-3 text-sm text-gray-600">{formatDate(payment.date)}</td><td className="px-4 py-3"><div className="font-semibold text-gray-900">{payment.student?.name || "—"}</div><div className="text-xs text-gray-500">Roll: {payment.student?.rollNumber || "—"}</div></td><td className="px-4 py-3 text-sm text-gray-600">{payment.month}, {payment.year}</td><td className="px-4 py-3 text-right text-sm font-bold text-emerald-700">{money(payment.amount)}</td><td className="px-4 py-3 text-sm capitalize text-gray-600">{payment.method || "—"}</td><td className="px-4 py-3 text-center"><StatusBadge status={payment.status === "paid" ? "paid" : "unpaid"} /></td><td className="px-4 py-3"><div className="flex justify-end gap-2"><button onClick={(event) => openEditModal(payment, event.currentTarget)} className="rounded-lg p-2 text-blue-600 hover:bg-blue-50" aria-label="Edit payment"><Edit className="h-4 w-4" /></button><button onClick={() => setDeleteId(payment._id)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label="Delete payment"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}{paginatedHistory.length === 0 && <tr><td colSpan="7" className="px-4 py-10 text-center text-sm text-gray-500">No payment history found.</td></tr>}</tbody></table></div><div className="divide-y divide-gray-100 sm:hidden">{paginatedHistory.map((payment) => <article key={payment._id} className="p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-bold text-gray-900">{payment.student?.name || "—"}</p><p className="text-xs text-gray-500">Roll: {payment.student?.rollNumber || "—"}</p></div><StatusBadge status={payment.status === "paid" ? "paid" : "unpaid"} /></div><div className="mt-3 grid grid-cols-2 gap-2"><InfoMetric label="Date" value={formatDate(payment.date)} /><InfoMetric label="Amount" value={money(payment.amount)} /><InfoMetric label="Month" value={`${payment.month}, ${payment.year}`} /><InfoMetric label="Method" value={payment.method || "—"} /></div><div className="mt-3 flex gap-2"><button onClick={(event) => openEditModal(payment, event.currentTarget)} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-sm font-bold text-blue-700"><Edit className="h-4 w-4" /> Edit</button><button onClick={() => setDeleteId(payment._id)} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-bold text-red-700"><Trash2 className="h-4 w-4" /> Delete</button></div></article>)}{paginatedHistory.length === 0 && <div className="px-4 py-10 text-center text-sm text-gray-500">No payment history found.</div>}</div><Pagination page={historyPage} totalPages={historyTotalPages} onPageChange={setHistoryPage} /></section>
+    <div ref={pdfReportRef} aria-hidden="true" className="pointer-events-none fixed left-[-100000px] top-0 z-[-1]">
+      <FeePdfReport
+        rows={filteredStudents.filter((student) => pdfStatusFilter === "all" || student.paymentStatus === pdfStatusFilter)}
+        month={selectedMonth}
+        year={selectedYear}
+        status={pdfStatusFilter}
+      />
+    </div>
     <div className="fixed bottom-[5.25rem] left-4 right-4 z-40 sm:hidden"><button onClick={(event) => openNewPaymentModal("", event.currentTarget)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-xl shadow-blue-600/30 ring-1 ring-white/20"><Plus className="h-5 w-5" /> Record Payment</button></div>
     {showFilters && <div className="fixed inset-0 z-[90] bg-black/40 sm:hidden" onClick={() => setShowFilters(false)}><div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="mb-5 flex items-center justify-between"><div><h3 className="text-lg font-bold text-gray-900">Fee Filters</h3><p className="text-xs text-gray-500">Narrow down the student list</p></div><button onClick={() => setShowFilters(false)} className="rounded-full bg-gray-100 p-2 text-gray-500" aria-label="Close filters"><X className="h-5 w-5" /></button></div><div className="space-y-3"><input value={studentSearch} onChange={(event) => setStudentSearch(event.target.value)} placeholder="Search student / roll / batch" className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm" /><select value={batchFilter} onChange={(event) => { setBatchFilter(event.target.value); setStudentFilter(""); }} className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"><option value="">All Batches</option>{batches.map((batch) => <option key={batch._id} value={batch._id}>{batch.name}</option>)}</select><select value={studentFilter} onChange={(event) => setStudentFilter(event.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"><option value="">All Students</option>{(summary?.students || []).filter((student) => batchFilter ? student.batch?._id === batchFilter : true).map((student) => <option key={student._id} value={student._id}>{student.name} ({student.rollNumber})</option>)}</select><input type="date" value={paymentDateFilter} onChange={(event) => setPaymentDateFilter(event.target.value)} className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm" /><select value={paymentStatusFilter} onChange={(event) => setPaymentStatusFilter(event.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"><option value="">All Payment Status</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option><option value="not-set">Fee Not Set</option></select></div><div className="mt-5 flex gap-2"><button onClick={clearStudentFilters} className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Clear</button><button onClick={() => setShowFilters(false)} className="flex-1 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white">Apply Filters</button></div></div></div>}
     
@@ -338,6 +374,118 @@ function Pagination({ page, totalPages, onPageChange }) {
 function StatCard({ title, value, icon: Icon, hint }) { return <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm sm:p-4"><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 sm:text-xs">{title}</p><Icon className="h-4 w-4 text-gray-400 sm:h-5 sm:w-5" /></div><p className="mt-2 text-xl font-bold text-gray-900 sm:mt-3 sm:text-2xl">{value}</p><p className="mt-1 text-[10px] text-gray-500 sm:text-xs">{hint}</p></div>; }
 function DueCard({ title, subtitle, value, icon: Icon, tone }) { const classes = tone === "amber" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-blue-200 bg-blue-50 text-blue-900"; const iconClass = tone === "amber" ? "text-amber-600" : "text-blue-600"; return <div className={`rounded-xl border p-4 sm:p-5 ${classes}`}><div className="flex items-start justify-between"><div><p className="text-sm font-bold">{title}</p><p className="mt-1 text-xs opacity-80">{subtitle}</p></div><Icon className={`h-5 w-5 ${iconClass}`} /></div><p className="mt-4 text-2xl font-bold">{money(value)}</p></div>; }
 function InfoMetric({ label, value }) { return <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5"><p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</p><p className="mt-1 text-sm font-bold text-gray-900">{value}</p></div>; }
+function FeePdfReport({ rows, month, year, status }) {
+  const rowsPerPage = 18;
+  const pages = [];
+  for (let i = 0; i < rows.length; i += rowsPerPage) pages.push(rows.slice(i, i + rowsPerPage));
+
+  const statusLabel = status === "all" ? "All Students" : status === "paid" ? "Paid Students" : status === "partial" ? "Partial Payments" : "Unpaid Students";
+  const reportMoney = (value) => `৳ ${Number(value || 0).toLocaleString("en-BD")}`;
+
+  return (
+    <div style={{ fontFamily: '"Noto Sans Bengali", Arial, sans-serif', color: "#111827" }}>
+      {pages.map((pageRows, pageIndex) => (
+        <div
+          key={pageIndex}
+          data-fee-pdf-page
+          style={{
+            boxSizing: "border-box",
+            width: "1120px",
+            height: "792px",
+            padding: "38px 42px 34px",
+            background: "#ffffff",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "14px" }}>
+            <div>
+              <div style={{ fontSize: "23px", fontWeight: 800, lineHeight: 1.25 }}>Aminul Islam Coaching Center</div>
+              <div style={{ marginTop: "4px", fontSize: "14px", fontWeight: 700, color: "#475569" }}>Fee Collection Report</div>
+            </div>
+            <div style={{ textAlign: "right", fontSize: "12px", color: "#64748b", lineHeight: 1.65 }}>
+              <div style={{ fontWeight: 700, color: "#334155" }}>{month} {year}</div>
+              <div>{statusLabel} · {rows.length} students</div>
+              <div>Page {pageIndex + 1} of {pages.length}</div>
+            </div>
+          </div>
+
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginTop: "18px", fontSize: "10px" }}>
+            <colgroup>
+              <col style={{ width: "4%" }} />
+              <col style={{ width: "17%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "15%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "9%" }} />
+            </colgroup>
+            <thead>
+              <tr>
+                {["#", "Student", "Roll", "Batch", "Monthly Fee", "Paid", "Previous Due", "Current Due", "Total Due", "Status"].map((heading) => (
+                  <th key={heading} style={{ background: "#0f766e", color: "#ffffff", padding: "9px 7px", border: "1px solid #0f766e", textAlign: heading === "#" || heading === "Status" ? "center" : heading.includes("Fee") || heading.includes("Paid") || heading.includes("Due") ? "right" : "left", fontWeight: 800 }}>
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pageRows.map((student, rowIndex) => {
+                const statusText = student.paymentStatus === "paid" ? "Paid" : student.paymentStatus === "partial" ? "Partial" : "Unpaid";
+                const statusColor = student.paymentStatus === "paid" ? "#047857" : student.paymentStatus === "partial" ? "#b45309" : "#b91c1c";
+                const values = [
+                  (pageIndex * rowsPerPage) + rowIndex + 1,
+                  student.name || "—",
+                  student.rollNumber || "—",
+                  student.batch?.name || "—",
+                  reportMoney(student.monthlyFee),
+                  reportMoney(student.paid),
+                  reportMoney(student.previousDue),
+                  reportMoney(student.currentDue),
+                  reportMoney(student.totalDue),
+                  statusText,
+                ];
+
+                return (
+                  <tr key={student._id}>
+                    {values.map((value, cellIndex) => (
+                      <td
+                        key={cellIndex}
+                        style={{
+                          padding: "8px 7px",
+                          height: "31px",
+                          border: "1px solid #cbd5e1",
+                          background: rowIndex % 2 === 0 ? "#ffffff" : "#f8fafc",
+                          verticalAlign: "middle",
+                          textAlign: cellIndex === 0 || cellIndex === 9 ? "center" : cellIndex >= 4 && cellIndex <= 8 ? "right" : "left",
+                          fontWeight: cellIndex === 9 ? 800 : cellIndex === 0 ? 600 : 500,
+                          color: cellIndex === 9 ? statusColor : "#1e293b",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {value}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div style={{ position: "absolute", boxSizing: "border-box", width: "1036px", marginTop: "13px", paddingTop: "8px", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94a3b8" }}>
+            <span>Generated {new Date().toLocaleDateString("en-BD")}</span>
+            <span>Aminul Islam Coaching Center</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function StatusBadge({ status }) { const config = { paid: ["Paid", "bg-emerald-50 text-emerald-700 ring-emerald-600/20"], partial: ["Partial", "bg-amber-50 text-amber-700 ring-amber-600/20"], unpaid: ["Unpaid", "bg-red-50 text-red-700 ring-red-600/20"] }[status] || ["Unknown", "bg-gray-50 text-gray-700 ring-gray-600/20"]; return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${config[1]}`}>{config[0]}</span>; }
 
 

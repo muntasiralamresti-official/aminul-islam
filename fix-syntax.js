@@ -1,7 +1,9 @@
 const fs = require('fs');
-let c = fs.readFileSync('app/api/dashboard/stats/route.js', 'utf8');
+let c = fs.readFileSync('app/dashboard/fees/page.jsx', 'utf8');
 
-c = c.replace(/const collectionThisMonth = payments\.currentMonth\[0\]\?\.total \|\| 0;/, '');
-c = c.replace(/const collectionThisMonth = collectionThisMonthAll;/, 'const collectionThisMonth = collectionThisMonthAll;');
+c = c.replace(
+  '      </div>\n\n  </div>;\n}',
+  '      </div>\n\n  </div>\n  </>;\n}'
+);
 
-fs.writeFileSync('app/api/dashboard/stats/route.js', c);
+fs.writeFileSync('app/dashboard/fees/page.jsx', c, 'utf8');

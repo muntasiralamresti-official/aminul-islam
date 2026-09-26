@@ -94,7 +94,11 @@ function formatRelativeTime(value) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(value).toLocaleDateString();
+  {
+    const d = new Date(value);
+    const m = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${d.getDate()} ${m[d.getMonth()]}`;
+  }
 }
 
 function getGreeting() {

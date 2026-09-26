@@ -7,7 +7,7 @@ const CATEGORIES=["All","General","Student","Class","Payment","Important"];
 const styles={General:"bg-slate-100 text-slate-600",Student:"bg-blue-50 text-blue-700",Class:"bg-violet-50 text-violet-700",Payment:"bg-emerald-50 text-emerald-700",Important:"bg-amber-50 text-amber-700"};
 const input="mt-1.5 block min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
 const blank=()=>({title:"",content:"",category:"General",pinned:false});
-const date=v=>new Date(v).toLocaleDateString("en-BD",{day:"numeric",month:"short",year:"numeric"});
+const date=v=>{const d=new Date(v);if(isNaN(d.getTime()))return"";const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];return `${d.getDate()} ${m[d.getMonth()]} ${d.getFullYear()}`;};
 
 export default function NotesPage(){
  const [notes,setNotes]=useState([]),[search,setSearch]=useState(""),[category,setCategory]=useState("All"),[loading,setLoading]=useState(true),[modal,setModal]=useState(false),[editing,setEditing]=useState(null),[saving,setSaving]=useState(false),[form,setForm]=useState(blank());

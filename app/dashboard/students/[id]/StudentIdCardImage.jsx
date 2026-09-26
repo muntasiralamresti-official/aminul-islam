@@ -100,7 +100,7 @@ export default function StudentIdCardImage({ student }) {
       const subject = student?.batch?.subject || "N/A";
       const phone = student?.phone || "N/A";
       const admission = student?.admissionDate
-        ? new Date(student.admissionDate).toLocaleDateString("en-BD")
+        ? ((d) => { if (!d) return "N/A"; const dt = new Date(d); if(isNaN(dt.getTime())) return "N/A"; const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; })(student.admissionDate)
         : "N/A";
       const status = String(student?.status || "active").toUpperCase();
       const initial = String(rawName).trim().charAt(0).toUpperCase() || "S";
@@ -277,7 +277,7 @@ export default function StudentIdCardImage({ student }) {
             <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Admission Date</p>
-                <p className="mt-1 text-sm font-bold text-slate-700">{student?.admissionDate ? new Date(student.admissionDate).toLocaleDateString("en-BD") : "N/A"}</p>
+                <p className="mt-1 text-sm font-bold text-slate-700">{student?.admissionDate ? ((d) => { if (!d) return "N/A"; const dt = new Date(d); if(isNaN(dt.getTime())) return "N/A"; const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; })(student.admissionDate) : "N/A"}</p>
               </div>
               <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-slate-200 bg-slate-50 text-[9px] font-extrabold tracking-widest text-slate-400">QR</div>
             </div>

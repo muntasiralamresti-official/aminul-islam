@@ -274,7 +274,7 @@ export default function FeesPage() {
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div className="shrink-0">
             <h2 className="text-base font-bold text-gray-900">Student-wise Fee Dashboard</h2>
-            <p className="mt-1 text-xs text-gray-500">{hasStudentFilters ? `${filteredStudents.length} matching students · ${totalActiveStudents} active` : `${totalActiveStudents} active students`} · ${selectedMonth} ${selectedYear}</p>
+            <p className="mt-1 text-xs text-gray-500">{hasStudentFilters ? `${filteredStudents.length} matching students · ${totalActiveStudents} active` : `${totalActiveStudents} active students`} · {selectedMonth} {selectedYear}</p>
             {hasStudentFilters && (
               <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-1 font-medium text-blue-700 ring-1 ring-inset ring-blue-200/50">Filtered Expected: {money(filteredStats.expected)}</span>

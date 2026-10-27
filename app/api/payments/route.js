@@ -32,6 +32,39 @@ export async function POST(request) {
   try {
     const body = await request.json();
     await connectMongo();
+
+    // 1. Support direct array of payments
+    if (Array.isArray(body)) {
+      const payments = await Payment.insertMany(body);
+      return NextResponse.json(payments, { status: 201 });
+    }
+
+    // 2. Support multi-month advance payment
+    if (Array.isArray(body.months) && body.months.length > 0) {
+      const { months, amount, discount, ...rest } = body;
+      const count = months.length;
+      const totalAmount = Number(amount) || 0;
+      const totalDiscount = Number(discount) || 0;
+      const amountPerMonth = Math.round((totalAmount / count) * 100) / 100;
+      const discountPerMonth = Math.round((totalDiscount / count) * 100) / 100;
+
+      const docs = months.map((m, idx) => {
+        const isLast = idx === count - 1;
+        const mAmount = isLast ? Math.round((totalAmount - amountPerMonth * (count - 1)) * 100) / 100 : amountPerMonth;
+        const mDiscount = isLast ? Math.round((totalDiscount - discountPerMonth * (count - 1)) * 100) / 100 : discountPerMonth;
+        return {
+          ...rest,
+          month: m,
+          amount: mAmount,
+          discount: mDiscount,
+        };
+      });
+
+      const payments = await Payment.insertMany(docs);
+      return NextResponse.json(payments, { status: 201 });
+    }
+
+    // 3. Single payment
     const payment = await Payment.create(body);
     return NextResponse.json(payment, { status: 201 });
   } catch (error) {

@@ -86,6 +86,10 @@ export async function GET(request, { params }) {
         if (expected > 0 && paid >= expected) status = "paid";
         else if (paid > 0) status = "partial";
         else status = "unpaid";
+      } else {
+        if (monthlyFee > 0 && paid >= monthlyFee) status = "advance-paid";
+        else if (paid > 0) status = "advance-partial";
+        else status = "upcoming";
       }
 
       return { month, monthIndex, monthlyFee, expected, paid, due, status };

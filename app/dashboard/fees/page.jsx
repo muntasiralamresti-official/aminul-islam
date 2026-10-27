@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Plus, Edit, Trash2, Wallet, CircleDollarSign, AlertCircle, CheckCircle2, Printer,
+  Plus, Edit, Trash2, Wallet, CircleDollarSign, AlertCircle, CheckCircle2, Printer, FileDown,
   Clock3, History, RefreshCw, CalendarDays, SlidersHorizontal, X, Search,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
@@ -56,6 +56,7 @@ export default function FeesPage() {
   const [modalPosition, setModalPosition] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [formData, setFormData] = useState({ student: "", month: initialMonth, year: initialYear, amount: "", method: "cash", status: "paid", date: todayInput() });
@@ -158,6 +159,8 @@ export default function FeesPage() {
   useEffect(() => { if (studentPage > studentTotalPages) setStudentPage(studentTotalPages); }, [studentPage, studentTotalPages]);
   useEffect(() => { if (historyPage > historyTotalPages) setHistoryPage(historyTotalPages); }, [historyPage, historyTotalPages]);
 
+  
+  
   const clearStudentFilters = () => { setBatchFilter(""); setStudentFilter(""); setStudentSearch(""); setPaymentDateFilter(""); setPaymentStatusFilter(""); setStudentPage(1); };
   const openNewPaymentModal = (studentId = "") => {
     router.push(studentId ? `/dashboard/fees/new?student=${studentId}` : "/dashboard/fees/new");
@@ -257,6 +260,7 @@ export default function FeesPage() {
       {/* PRINT ONLY SECTION */}
       <div className="hidden print-only print:p-8">
         <div className="mb-6 text-center">
+        <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">Student Fee List</h1>
           <p className="text-gray-600">Month: {selectedMonth} {selectedYear} | Total Students: {filteredStudents.length}</p>
         </div>
@@ -289,6 +293,7 @@ export default function FeesPage() {
           </tbody>
         </table>
             </div>
+  </div>
   </div>
   </>;
 }

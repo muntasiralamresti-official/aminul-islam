@@ -11,6 +11,8 @@ const dateText = (value) => value ? new Date(value).toLocaleDateString("en-BD", 
 function StatusBadge({ status }) {
   const map = {
     paid: ["PAID", "bg-emerald-500 text-white", Check],
+    "advance-paid": ["ADVANCE PAID", "bg-emerald-600 text-white ring-2 ring-emerald-300", Check],
+    "advance-partial": ["ADVANCE PARTIAL", "bg-teal-600 text-white", Clock3],
     partial: ["PARTIAL", "bg-amber-500 text-white", Clock3],
     unpaid: ["UNPAID", "bg-red-500 text-white", CircleDollarSign],
     due: ["DUE", "bg-red-500 text-white", CircleDollarSign],
